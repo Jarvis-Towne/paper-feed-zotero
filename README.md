@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/License-AGPL--3.0-orange?style=flat-square)](./LICENSE)
 
 这是一个 Zotero 插件项目，将“期刊 RSS 抓取 + 关键词规则筛选 + 本地 RSS 推送 + Zotero 原生订阅接入”整合到 Zotero 内部完成。用户不再依赖 GitHub Actions、GitHub Pages 或外部脚本，可以直接在 Zotero 中维护配置、执行抓取、查看运行状态并订阅筛选结果。
-如果你不想本地抓取，请使用[paper feed](https://github.com/Jarvis-Towne/paper-feed)。
+如果你不想本地抓取，请使用 [paper feed](https://github.com/Jarvis-Towne/paper-feed) 。
 
 ---
 
@@ -49,7 +49,7 @@
 - 如有配置文件，点击 `导入配置`，选择导入配置即可。
 - 本地 RSS 地址只在 Zotero 运行期间可访问。
 - 自动抓取同样依赖 Zotero 运行，不会在后台独立常驻。
-- [paper feed](https://github.com/Jarvis-Towne/paper-feed)项目可云端抓取，但仍需打开 Zotero 更新订阅。
+- [paper feed](https://github.com/Jarvis-Towne/paper-feed) 项目可云端抓取，但仍需打开 Zotero 更新订阅。
 
 ---
 
@@ -65,3 +65,7 @@
 ## 许可证
 
 本项目使用 [AGPL-3.0-or-later](./LICENSE) 许可证。
+
+## 友情链接
+
+`https://linux.do/`
