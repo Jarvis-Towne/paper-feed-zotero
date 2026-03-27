@@ -1,0 +1,417 @@
+<linkset>
+  <html:link rel="localization" href="__addonRef__-preferences.ftl" />
+  <html:link
+    rel="stylesheet"
+    href="chrome://__addonRef__/content/preferences.css"
+  />
+</linkset>
+<groupbox
+  class="paperfeed-page-intro"
+  onload="Zotero.__addonInstance__.hooks.onPrefsEvent('load', { window })"
+>
+  <description data-l10n-id="pref-description"></description>
+</groupbox>
+
+<groupbox
+  class="paperfeed-groupbox paperfeed-card"
+  onload="Zotero.__addonInstance__.hooks.onPrefsEvent('load', { window })"
+>
+  <label>
+    <html:h3 data-l10n-id="pref-config-section"></html:h3>
+  </label>
+  <description data-l10n-id="pref-config-description"></description>
+
+  <hbox align="center">
+    <html:label
+      for="zotero-prefpane-__addonRef__-profile-name"
+      data-l10n-id="pref-profile-name"
+    ></html:label>
+    <html:input id="zotero-prefpane-__addonRef__-profile-name"></html:input>
+  </hbox>
+
+  <vbox>
+    <html:label data-l10n-id="pref-journals"></html:label>
+    <html:div
+      id="zotero-prefpane-__addonRef__-journal-table-shell"
+      class="paperfeed-table-shell"
+    >
+      <html:table
+        id="zotero-prefpane-__addonRef__-journal-table"
+        class="paperfeed-journal-table"
+      >
+        <html:colgroup>
+          <html:col
+            id="zotero-prefpane-__addonRef__-journal-col-name"
+          ></html:col>
+          <html:col
+            id="zotero-prefpane-__addonRef__-journal-col-url"
+          ></html:col>
+          <html:col class="paperfeed-journal-actions-col"></html:col>
+        </html:colgroup>
+        <html:thead>
+          <html:tr>
+            <html:th
+              class="paperfeed-journal-resizable"
+              data-paperfeed-column="name"
+            >
+              <html:div
+                class="paperfeed-journal-header-label"
+                data-l10n-id="pref-journal-name-column"
+              ></html:div>
+              <html:div
+                id="zotero-prefpane-__addonRef__-journal-name-resizer"
+                class="paperfeed-column-resizer"
+              ></html:div>
+            </html:th>
+            <html:th data-paperfeed-column="url">
+              <html:div
+                class="paperfeed-journal-header-label"
+                data-l10n-id="pref-journal-url-column"
+              ></html:div>
+            </html:th>
+            <html:th
+              class="paperfeed-journal-actions-header"
+              data-paperfeed-column="actions"
+              data-l10n-id="pref-journal-actions-column"
+            ></html:th>
+          </html:tr>
+        </html:thead>
+        <html:tbody id="zotero-prefpane-__addonRef__-journal-rows"></html:tbody>
+      </html:table>
+    </html:div>
+    <html:button
+      id="zotero-prefpane-__addonRef__-add-journal-row"
+      data-l10n-id="pref-add-journal-row"
+      type="button"
+    ></html:button>
+  </vbox>
+
+  <vbox>
+    <html:label
+      for="zotero-prefpane-__addonRef__-keyword-table"
+      data-l10n-id="pref-keywords"
+    ></html:label>
+    <html:div
+      id="zotero-prefpane-__addonRef__-keyword-table-shell"
+      class="paperfeed-table-shell paperfeed-keyword-table-shell"
+    >
+      <html:table
+        id="zotero-prefpane-__addonRef__-keyword-table"
+        class="paperfeed-keyword-table"
+      >
+        <html:colgroup>
+          <html:col></html:col>
+          <html:col class="paperfeed-journal-actions-col"></html:col>
+        </html:colgroup>
+        <html:thead>
+          <html:tr>
+            <html:th data-paperfeed-column="rule">
+              <html:div
+                class="paperfeed-journal-header-label"
+                data-l10n-id="pref-keyword-rule-column"
+              ></html:div>
+            </html:th>
+            <html:th
+              class="paperfeed-journal-actions-header"
+              data-paperfeed-column="actions"
+              data-l10n-id="pref-journal-actions-column"
+            ></html:th>
+          </html:tr>
+        </html:thead>
+        <html:tbody id="zotero-prefpane-__addonRef__-keyword-rows"></html:tbody>
+      </html:table>
+    </html:div>
+    <html:button
+      id="zotero-prefpane-__addonRef__-add-keyword-row"
+      data-l10n-id="pref-add-keyword-row"
+      type="button"
+    ></html:button>
+  </vbox>
+
+  <hbox align="center">
+    <html:label
+      for="zotero-prefpane-__addonRef__-auto-fetch-enabled"
+      data-l10n-id="pref-auto-fetch-enabled"
+    ></html:label>
+    <html:input
+      id="zotero-prefpane-__addonRef__-auto-fetch-enabled"
+      type="checkbox"
+    ></html:input>
+    <html:label
+      for="zotero-prefpane-__addonRef__-auto-fetch-interval"
+      data-l10n-id="pref-auto-fetch-interval"
+    ></html:label>
+    <html:input
+      id="zotero-prefpane-__addonRef__-auto-fetch-interval"
+      type="number"
+      min="1"
+      step="1"
+    ></html:input>
+  </hbox>
+
+  <hbox class="paperfeed-action-toolbar">
+    <html:button
+      id="zotero-prefpane-__addonRef__-import-config"
+      data-l10n-id="pref-import-config"
+      type="button"
+    ></html:button>
+    <html:button
+      id="zotero-prefpane-__addonRef__-export-config"
+      data-l10n-id="pref-export-config"
+      type="button"
+    ></html:button>
+    <html:button
+      id="zotero-prefpane-__addonRef__-save-config"
+      data-l10n-id="pref-save-config"
+      type="button"
+    ></html:button>
+    <html:button
+      id="zotero-prefpane-__addonRef__-run-fetch"
+      data-l10n-id="pref-run-fetch"
+      type="button"
+    ></html:button>
+    <html:button
+      id="zotero-prefpane-__addonRef__-refresh-status"
+      data-l10n-id="pref-refresh-status"
+      type="button"
+    ></html:button>
+  </hbox>
+
+  <description
+    id="zotero-prefpane-__addonRef__-ui-message"
+    data-l10n-id="pref-ui-message-idle"
+  ></description>
+</groupbox>
+
+<groupbox
+  class="paperfeed-groupbox paperfeed-card"
+  onload="Zotero.__addonInstance__.hooks.onPrefsEvent('load', { window })"
+>
+  <label>
+    <html:h3 data-l10n-id="pref-subscription-section"></html:h3>
+  </label>
+  <description data-l10n-id="pref-subscription-description"></description>
+
+  <html:div class="paperfeed-form-grid">
+    <html:div class="paperfeed-form-row">
+      <html:label
+        class="paperfeed-form-label"
+        for="zotero-prefpane-__addonRef__-subscription-name"
+        data-l10n-id="pref-subscription-name"
+      ></html:label>
+      <html:div class="paperfeed-form-control">
+        <html:input
+          id="zotero-prefpane-__addonRef__-subscription-name"
+          class="paperfeed-form-input is-wide"
+        ></html:input>
+      </html:div>
+    </html:div>
+    <html:div class="paperfeed-form-row">
+      <html:label
+        class="paperfeed-form-label"
+        for="zotero-prefpane-__addonRef__-subscription-refresh-interval"
+        data-l10n-id="pref-subscription-refresh-interval"
+      ></html:label>
+      <html:div class="paperfeed-form-control">
+        <html:input
+          id="zotero-prefpane-__addonRef__-subscription-refresh-interval"
+          class="paperfeed-form-input is-compact"
+          type="number"
+          min="1"
+          step="1"
+        ></html:input>
+        <html:span
+          class="paperfeed-form-unit"
+          data-l10n-id="pref-unit-hours"
+        ></html:span>
+      </html:div>
+    </html:div>
+    <html:div class="paperfeed-form-row">
+      <html:label
+        class="paperfeed-form-label"
+        for="zotero-prefpane-__addonRef__-subscription-cleanup-read"
+        data-l10n-id="pref-subscription-cleanup-read"
+      ></html:label>
+      <html:div class="paperfeed-form-control">
+        <html:input
+          id="zotero-prefpane-__addonRef__-subscription-cleanup-read"
+          class="paperfeed-form-input is-compact"
+          type="number"
+          min="1"
+          step="1"
+        ></html:input>
+        <html:span
+          class="paperfeed-form-unit"
+          data-l10n-id="pref-unit-days"
+        ></html:span>
+      </html:div>
+    </html:div>
+    <html:div class="paperfeed-form-row">
+      <html:label
+        class="paperfeed-form-label"
+        for="zotero-prefpane-__addonRef__-subscription-cleanup-unread"
+        data-l10n-id="pref-subscription-cleanup-unread"
+      ></html:label>
+      <html:div class="paperfeed-form-control">
+        <html:input
+          id="zotero-prefpane-__addonRef__-subscription-cleanup-unread"
+          class="paperfeed-form-input is-compact"
+          type="number"
+          min="1"
+          step="1"
+        ></html:input>
+        <html:span
+          class="paperfeed-form-unit"
+          data-l10n-id="pref-unit-days"
+        ></html:span>
+      </html:div>
+    </html:div>
+    <html:div class="paperfeed-form-actions">
+      <html:button
+        id="zotero-prefpane-__addonRef__-apply-feed"
+        class="paperfeed-primary-button"
+        data-l10n-id="pref-apply-feed"
+        type="button"
+      ></html:button>
+    </html:div>
+  </html:div>
+</groupbox>
+
+<groupbox
+  class="paperfeed-groupbox paperfeed-card"
+  onload="Zotero.__addonInstance__.hooks.onPrefsEvent('load', { window })"
+>
+  <label>
+    <html:h3 data-l10n-id="pref-status-section"></html:h3>
+  </label>
+  <description data-l10n-id="pref-status-description"></description>
+
+  <html:div class="paperfeed-status-layout">
+    <html:dl class="paperfeed-descriptions">
+      <html:div class="paperfeed-description-row">
+        <html:dt data-l10n-id="pref-server-status"></html:dt>
+        <html:dd class="paperfeed-status-value-group">
+          <html:span
+            id="zotero-prefpane-__addonRef__-server-status"
+            class="paperfeed-status-badge is-neutral"
+          ></html:span>
+          <html:span
+            id="zotero-prefpane-__addonRef__-server-status-detail"
+            class="paperfeed-status-detail"
+          ></html:span>
+        </html:dd>
+      </html:div>
+      <html:div class="paperfeed-description-row">
+        <html:dt data-l10n-id="pref-rss-url"></html:dt>
+        <html:dd>
+          <html:span
+            id="zotero-prefpane-__addonRef__-rss-url"
+            class="paperfeed-url-value"
+          ></html:span>
+          <html:button
+            id="zotero-prefpane-__addonRef__-copy-rss-url"
+            class="paperfeed-copy-button"
+            type="button"
+          ></html:button>
+        </html:dd>
+      </html:div>
+      <html:div class="paperfeed-description-row">
+        <html:dt data-l10n-id="pref-generated-at"></html:dt>
+        <html:dd>
+          <html:span
+            id="zotero-prefpane-__addonRef__-generated-at"
+            class="paperfeed-value-text"
+          ></html:span>
+        </html:dd>
+      </html:div>
+      <html:div class="paperfeed-description-row">
+        <html:dt data-l10n-id="pref-last-run-at"></html:dt>
+        <html:dd>
+          <html:span
+            id="zotero-prefpane-__addonRef__-last-run-at"
+            class="paperfeed-value-text"
+          ></html:span>
+        </html:dd>
+      </html:div>
+      <html:div class="paperfeed-description-row">
+        <html:dt data-l10n-id="pref-last-success-at"></html:dt>
+        <html:dd>
+          <html:span
+            id="zotero-prefpane-__addonRef__-last-success-at"
+            class="paperfeed-value-text"
+          ></html:span>
+        </html:dd>
+      </html:div>
+    </html:dl>
+
+    <html:div class="paperfeed-stat-grid">
+      <html:div class="paperfeed-stat-card">
+        <html:div
+          class="paperfeed-stat-label"
+          data-l10n-id="pref-journal-count"
+        ></html:div>
+        <html:div
+          id="zotero-prefpane-__addonRef__-journal-count"
+          class="paperfeed-stat-value"
+        ></html:div>
+      </html:div>
+      <html:div class="paperfeed-stat-card">
+        <html:div
+          class="paperfeed-stat-label"
+          data-l10n-id="pref-query-count"
+        ></html:div>
+        <html:div
+          id="zotero-prefpane-__addonRef__-query-count"
+          class="paperfeed-stat-value"
+        ></html:div>
+      </html:div>
+      <html:div class="paperfeed-stat-card">
+        <html:div
+          class="paperfeed-stat-label"
+          data-l10n-id="pref-stored-item-count"
+        ></html:div>
+        <html:div
+          id="zotero-prefpane-__addonRef__-stored-item-count"
+          class="paperfeed-stat-value"
+        ></html:div>
+      </html:div>
+      <html:div class="paperfeed-stat-card">
+        <html:div
+          class="paperfeed-stat-label"
+          data-l10n-id="pref-last-match-count"
+        ></html:div>
+        <html:div
+          id="zotero-prefpane-__addonRef__-last-match-count"
+          class="paperfeed-stat-value"
+        ></html:div>
+      </html:div>
+    </html:div>
+
+    <html:div class="paperfeed-error-card">
+      <html:div
+        class="paperfeed-error-label"
+        data-l10n-id="pref-last-error"
+      ></html:div>
+      <html:pre
+        id="zotero-prefpane-__addonRef__-last-error"
+        class="paperfeed-error-value"
+      ></html:pre>
+    </html:div>
+  </html:div>
+</groupbox>
+
+<vbox class="paperfeed-page-footer">
+  <html:label
+    data-l10n-id="pref-build-info"
+    data-l10n-args='{"time": "__buildTime__","name": "__addonName__","version":"__buildVersion__"}'
+  ></html:label>
+  <html:label data-l10n-id="pref-runtime-note"></html:label>
+  <html:a
+    id="zotero-prefpane-__addonRef__-github-link"
+    class="paperfeed-footer-link"
+    href="https://github.com/Jarvis-Towne/paper-feed-zotero"
+    target="_blank"
+    rel="noreferrer"
+    data-l10n-id="pref-github-link"
+  ></html:a>
+</vbox>

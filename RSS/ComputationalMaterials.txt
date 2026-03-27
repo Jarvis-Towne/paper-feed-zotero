@@ -1,0 +1,125 @@
+# Paper Feed config v1
+[general]
+profile_name = Computational Materials
+auto_fetch_enabled = true
+auto_fetch_interval_hours = 6
+
+[subscription]
+name = Paper Feed
+refresh_interval_hours = 6
+cleanup_read_after_days = 30
+cleanup_unread_after_days = 365
+
+[keywords]
+
+
+[journals]
+ | feeds.aps.org/rss/recent/prmaterials.xml
+ | feeds.aps.org/rss/recent/prx.xml
+ | feeds.aps.org/rss/tocsec/PRL-CondensedMatterStructureetc.xml
+ | feeds.aps.org/rss/tocsec/PRB-Structurestructuralphasetransitionsmechanicalpropertiesdefects.xml
+ | feeds.aps.org/rss/tocsec/PRB-SemiconductorsIbulk.xml
+ | https://advanced.onlinelibrary.wiley.com/feed/15214095/most-recent
+ | https://advanced.onlinelibrary.wiley.com/feed/16163028/most-recent
+ | https://www.science.org/action/showFeed?type=etoc&feed=rss&jc=science
+ | https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=aelccp
+ | https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=ancac3
+ | https://onlinelibrary.wiley.com/feed/16146840/most-recent
+ | https://advanced.onlinelibrary.wiley.com/feed/16163028/most-recent
+ | https://advanced.onlinelibrary.wiley.com/feed/15214095/most-recent
+ | https://onlinelibrary.wiley.com/feed/15213773/most-recent
+ | https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=jacsat
+ | https://rss.sciencedirect.com/publication/science/25424351
+ | https://rss.sciencedirect.com/publication/science/25902385
+ | https://rss.sciencedirect.com/publication/science/22112855
+ | https://www.nature.com/nature.rss
+ | https://www.nature.com/ncomms.rss
+ | https://www.nature.com/nenergy.rss
+ | https://www.nature.com/nmat.rss
+ | https://www.nature.com/nphys.rss
+ | https://www.nature.com/natrevmats.rss
+ | https://www.nature.com/npjcompumats.rss
+ | https://onlinelibrary.wiley.com/feed/25673173/most-recent
+ | https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=jctcce
+ | https://pubs.aip.org/rss/site_1000011/1000008.xml
+ | https://pubs.aip.org/rss/site_1000009/1000007.xml
+ | https://pubs.aip.org/rss/site_1000017/1000011.xml
+ | https://pubs.aip.org/rss/site_1000017/LatestOpenIssueArticles_1000011.xml
+ | https://pubs.aip.org/rss/site_1000019/1000012.xml
+ | https://pubs.aip.org/rss/site_1000019/LatestOpenIssueArticles_1000012.xml
+ | https://pubs.aip.org/rss/site_1000013/1000009.xml
+ | https://pubs.aip.org/rss/site_1000013/LatestOpenIssueArticles_1000009.xml
+ | https://rss.sciencedirect.com/publication/science/13697021
+ | https://rss.sciencedirect.com/publication/science/25425293
+ | https://www.tandfonline.com/feed/rss/tadp20
+ | https://feeds.aps.org/rss/recent/rmp.xml
+ | https://feeds.aps.org/rss/recent/prl.xml
+ | https://feeds.aps.org/rss/tocsec/PRB-Dynamicsdynamicalsystemslatticeeffectsquantumsolids.xml
+ | https://feeds.aps.org/rss/recent/prb.xml
+ | https://www.nature.com/natrevphys.rss
+ | https://www.nature.com/nnano.rss
+ | https://rss.sciencedirect.com/publication/science/00796425
+ | https://advanced.onlinelibrary.wiley.com/feed/21983844/most-recent
+ | https://www.pnas.org/action/showFeed?type=etoc&feed=rss&jc=PNAS
+ | https://www.pnas.org/action/showFeed?type=searchTopic&taxonomyCode=topic&tagCode=phys-sci
+ | https://rss.arxiv.org/rss/cond-mat
+ | https://rss.sciencedirect.com/publication/science/20959273
+ | https://rss.sciencedirect.com/publication/science/26671417
+ | https://www.nature.com/commsmat.rss
+ | https://rss.sciencedirect.com/publication/science/29497477
+ | https://rss.sciencedirect.com/publication/science/09270256
+ | https://rss.sciencedirect.com/publication/science/01672738
+ | https://www.annualreviews.org/rss/content/journals/conmatphys/latestarticles?fmt=rss
+ | https://www.annualreviews.org/rss/content/journals/matsci/latestarticles?fmt=rss
+ | https://www.nature.com/natmachintell.rss
+ | https://rss.sciencedirect.com/publication/science/00796425
+ | https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=jpclcd
+ | https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=jpccck
+ | https://rss.sciencedirect.com/publication/science/2352152X
+ | https://rss.sciencedirect.com/publication/science/13590286
+ | http://feeds.rsc.org/rss/dd
+ | https://rss.sciencedirect.com/publication/science/23528478
+ | https://chemrxiv.org/engage/rss/chemrxiv
+ | https://advanced.onlinelibrary.wiley.com/feed/29439981/most-recent
+ | https://rss.sciencedirect.com/publication/science/30509130
+ | https://feeds.aps.org/rss/recent/prxenergy.xml
+ | https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=achre4
+ | https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=amrcda
+ | https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=amlcef
+ | https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=amacgu
+ | https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=apcach
+ | https://iopscience.iop.org/journal/rss/3050-287X
+ | https://ccs-stag.literatumonline.com/action/showFeed?type=etoc&feed=rss&jc=ccschem
+ | https://www.nature.com/natchemeng.rss
+ | http://feeds.rsc.org/rss/sc
+ | https://www.cell.com/iscience/current.rss
+ | https://www.cell.com/iscience/inpress.rss
+ | https://www.cell.com/Joule/current.rss
+ | https://www.cell.com/joule/inpress.rss
+ | https://www.cell.com/Matter/current.rss
+ | https://www.cell.com/matter/inpress.rss
+ | https://www.cell.com/Newton/current.rss
+ | https://www.cell.com/Newton/inpress.rss
+ | https://www.cell.com/Chem/current.rss
+ | https://www.cell.com/chem/inpress.rss
+ | https://www.cell.com/chem-catalysis/inpress.rss
+ | https://www.cell.com/chem-catalysis/current.rss
+ | https://www.cell.com/Cell-Reports-Physical-Science/inpress.rss
+ | https://www.cell.com/Cell-Reports-Physical-Science/current.rss
+ | https://onlinelibrary.wiley.com/feed/16136829/most-recent
+ | https://onlinelibrary.wiley.com/feed/23669608/most-recent
+ | https://onlinelibrary.wiley.com/feed/26379368/most-recent
+ | https://onlinelibrary.wiley.com/feed/16147065/most-recent
+ | https://onlinelibrary.wiley.com/feed/25750356/most-recent
+ | https://onlinelibrary.wiley.com/feed/25673165/most-recent
+ | https://onlinelibrary.wiley.com/feed/2688819x/most-recent
+ | https://onlinelibrary.wiley.com/feed/26884062/most-recent
+ | https://onlinelibrary.wiley.com/feed/26924552/most-recent
+ | https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=jaaucr
+ | https://www.tandfonline.com/feed/rss/tmrl20
+ | https://rss.sciencedirect.com/publication/science/25425293
+ | https://rss.sciencedirect.com/publication/science/13596454
+ | https://rss.sciencedirect.com/publication/science/18722067
+ | https://rss.sciencedirect.com/publication/science/00219517
+ | https://www.nature.com/commsphys.rss
+ | https://f.oaes.cc/rss/aiagent.xml
