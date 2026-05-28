@@ -1,21 +1,39 @@
 const LOCALHOST = "127.0.0.1";
 
-export interface LegacyEndpoint {
-  supportedMethods?: string[];
-  supportedDataTypes?: string[] | "*";
-  init: (
-    data: unknown,
-    sendResponseCallback: SendResponseCallback,
-  ) => void | Promise<void>;
-}
-
-export type LegacyEndpointConstructor = new () => LegacyEndpoint;
-
 export type SendResponseCallback = (
   status: number,
   contentType?: string,
   body?: string,
 ) => void;
+
+export interface LegacyEndpointRequest {
+  method: string;
+  pathname: string;
+  pathParams: Record<string, string>;
+  searchParams: URLSearchParams;
+  headers: Record<string, string>;
+  data: unknown;
+}
+
+export type LegacyEndpointResponse =
+  | number
+  | [status: number, contentType?: string, body?: string];
+
+export interface LegacyEndpoint {
+  supportedMethods?: string[];
+  supportedDataTypes?: string[] | "*";
+  allowRequestsFromUnsafeWebContent?: boolean;
+  init:
+    | ((
+        data: unknown,
+        sendResponseCallback: SendResponseCallback,
+      ) => void | Promise<void>)
+    | ((
+        request: LegacyEndpointRequest,
+      ) => LegacyEndpointResponse | Promise<LegacyEndpointResponse>);
+}
+
+export type LegacyEndpointConstructor = new () => LegacyEndpoint;
 
 function getServer() {
   const server = (Zotero as any).Server;

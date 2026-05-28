@@ -2,6 +2,7 @@ import { config } from "../../../package.json";
 import type { ConfigImportResult } from "../configExchange/configExchange";
 import { DEFAULT_PORTABLE_CONFIG_FILE_NAME } from "../configExchange/portableFormat";
 import type {
+  AiSummaryConfig,
   FeedRuntimeSummary,
   JournalConfig,
   PluginConfig,
@@ -34,12 +35,40 @@ function setInputValue(doc: Document, id: string, value: string) {
   input.value = value;
 }
 
+function setTextareaValue(doc: Document, id: string, value: string) {
+  const input = doc.getElementById(id) as HTMLTextAreaElement | null;
+  if (!input) {
+    return;
+  }
+  input.value = value;
+}
+
 function setCheckboxValue(doc: Document, id: string, value: boolean) {
   const input = doc.getElementById(id) as HTMLInputElement | null;
   if (!input) {
     return;
   }
   input.checked = value;
+}
+
+function setRadioValue(doc: Document, name: string, value: string) {
+  const input = doc.querySelector(
+    `input[name="${name}"][value="${value}"]`,
+  ) as HTMLInputElement | null;
+  if (!input) {
+    return;
+  }
+
+  input.checked = true;
+}
+
+function setInputEnabled(doc: Document, id: string, enabled: boolean) {
+  const input = doc.getElementById(id) as HTMLInputElement | null;
+  if (!input) {
+    return;
+  }
+
+  input.disabled = !enabled;
 }
 
 function setDisplayValue(
@@ -98,9 +127,23 @@ function getMessage(
   return args ? getString(id, { args }) : getString(id);
 }
 
+async function syncSchedulers(
+  reason: Parameters<typeof addon.api.syncAutoFetchScheduler>[0],
+) {
+  await Promise.all([
+    addon.api.syncAutoFetchScheduler(reason),
+    addon.api.syncAiSummaryScheduler(reason),
+  ]);
+}
+
 function getTextInputValue(doc: Document, id: string) {
   const input = doc.getElementById(id) as HTMLInputElement | null;
   return input?.value?.trim() || "";
+}
+
+function getTextareaValue(doc: Document, id: string) {
+  const input = doc.getElementById(id) as HTMLTextAreaElement | null;
+  return input?.value || "";
 }
 
 function getCheckboxValue(doc: Document, id: string) {
@@ -108,11 +151,42 @@ function getCheckboxValue(doc: Document, id: string) {
   return !!input?.checked;
 }
 
+function getRadioValue(doc: Document, name: string, fallback: string) {
+  const input = doc.querySelector(
+    `input[name="${name}"]:checked`,
+  ) as HTMLInputElement | null;
+  return input?.value || fallback;
+}
+
 function getNumberInputValue(doc: Document, id: string, fallback: number) {
   const input = doc.getElementById(id) as HTMLInputElement | null;
   const parsed = Number.parseInt(input?.value || "", 10);
 
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function getTimeInputValue(doc: Document, id: string, fallback: string) {
+  const input = doc.getElementById(id) as HTMLInputElement | null;
+  const value = input?.value?.trim() || "";
+  return /^([01]?\d|2[0-3]):[0-5]\d$/.test(value) ? value : fallback;
+}
+
+function getAiSummaryScheduleModeName() {
+  return `zotero-prefpane-${config.addonRef}-ai-schedule-mode`;
+}
+
+function updateAiSummaryScheduleControls(doc: Document) {
+  const mode = getRadioValue(doc, getAiSummaryScheduleModeName(), "interval");
+  setInputEnabled(
+    doc,
+    `zotero-prefpane-${config.addonRef}-ai-schedule-interval-hours`,
+    mode === "interval",
+  );
+  setInputEnabled(
+    doc,
+    `zotero-prefpane-${config.addonRef}-ai-schedule-daily-time`,
+    mode === "daily",
+  );
 }
 
 function getNotAvailableLabel() {
@@ -302,7 +376,10 @@ function bindJournalColumnResizer(window: Window) {
     const startX = event.clientX;
 
     const onMouseMove = (moveEvent: MouseEvent) => {
-      applyJournalColumnWidths(doc, startNameWidth + moveEvent.clientX - startX);
+      applyJournalColumnWidths(
+        doc,
+        startNameWidth + moveEvent.clientX - startX,
+      );
     };
 
     const cleanup = () => {
@@ -344,6 +421,22 @@ function bindCopyButton(
 
     copyTextToClipboard(value);
     setMessage(doc, getMessage("pref-ui-message-url-copied", { url: value }));
+  });
+}
+
+function bindButtonClick(
+  doc: Document,
+  id: string,
+  listener: () => void | Promise<void>,
+) {
+  const button = doc.getElementById(id) as HTMLButtonElement | null;
+  if (!button || button.dataset.paperfeedBound === "true") {
+    return;
+  }
+
+  button.dataset.paperfeedBound = "true";
+  button.addEventListener("click", () => {
+    void listener();
   });
 }
 
@@ -505,8 +598,10 @@ function readKeywordRows(doc: Document) {
 function readConfigFromForm(doc: Document): PluginConfig {
   return {
     profileName:
-      getTextInputValue(doc, `zotero-prefpane-${config.addonRef}-profile-name`) ||
-      "default",
+      getTextInputValue(
+        doc,
+        `zotero-prefpane-${config.addonRef}-profile-name`,
+      ) || "default",
     journals: readJournalRows(doc),
     keywordQueries: readKeywordRows(doc),
     autoFetchEnabled: getCheckboxValue(
@@ -537,6 +632,69 @@ function readConfigFromForm(doc: Document): PluginConfig {
       cleanupUnreadAfterDays: getNumberInputValue(
         doc,
         `zotero-prefpane-${config.addonRef}-subscription-cleanup-unread`,
+        365,
+      ),
+    },
+    aiSummary: readAiSummaryConfigFromForm(doc),
+  };
+}
+
+function readAiSummaryConfigFromForm(doc: Document): AiSummaryConfig {
+  const scheduleModeName = getAiSummaryScheduleModeName();
+  const scheduleMode = getRadioValue(doc, scheduleModeName, "interval");
+  return {
+    enabled: getCheckboxValue(
+      doc,
+      `zotero-prefpane-${config.addonRef}-ai-enabled`,
+    ),
+    baseUrl: getTextInputValue(
+      doc,
+      `zotero-prefpane-${config.addonRef}-ai-base-url`,
+    ),
+    apiKey: getTextInputValue(
+      doc,
+      `zotero-prefpane-${config.addonRef}-ai-api-key`,
+    ),
+    model: getTextInputValue(
+      doc,
+      `zotero-prefpane-${config.addonRef}-ai-model`,
+    ),
+    prompt: getTextareaValue(
+      doc,
+      `zotero-prefpane-${config.addonRef}-ai-prompt`,
+    ),
+    schedule: {
+      mode: scheduleMode === "daily" ? "daily" : "interval",
+      intervalHours: getNumberInputValue(
+        doc,
+        `zotero-prefpane-${config.addonRef}-ai-schedule-interval-hours`,
+        24,
+      ),
+      dailyTime: getTimeInputValue(
+        doc,
+        `zotero-prefpane-${config.addonRef}-ai-schedule-daily-time`,
+        "09:00",
+      ),
+    },
+    subscription: {
+      name:
+        getTextInputValue(
+          doc,
+          `zotero-prefpane-${config.addonRef}-ai-subscription-name`,
+        ) || "Paper Feed AI Summary",
+      refreshIntervalHours: getNumberInputValue(
+        doc,
+        `zotero-prefpane-${config.addonRef}-ai-subscription-refresh-interval`,
+        24,
+      ),
+      cleanupReadAfterDays: getNumberInputValue(
+        doc,
+        `zotero-prefpane-${config.addonRef}-ai-subscription-cleanup-read`,
+        30,
+      ),
+      cleanupUnreadAfterDays: getNumberInputValue(
+        doc,
+        `zotero-prefpane-${config.addonRef}-ai-subscription-cleanup-unread`,
         365,
       ),
     },
@@ -583,6 +741,67 @@ async function fillConfigFields(doc: Document) {
     `zotero-prefpane-${config.addonRef}-subscription-cleanup-unread`,
     String(storedConfig.subscription.cleanupUnreadAfterDays),
   );
+  setCheckboxValue(
+    doc,
+    `zotero-prefpane-${config.addonRef}-ai-enabled`,
+    storedConfig.aiSummary.enabled,
+  );
+  setInputValue(
+    doc,
+    `zotero-prefpane-${config.addonRef}-ai-base-url`,
+    storedConfig.aiSummary.baseUrl,
+  );
+  setInputValue(
+    doc,
+    `zotero-prefpane-${config.addonRef}-ai-api-key`,
+    storedConfig.aiSummary.apiKey,
+  );
+  setInputValue(
+    doc,
+    `zotero-prefpane-${config.addonRef}-ai-model`,
+    storedConfig.aiSummary.model,
+  );
+  setTextareaValue(
+    doc,
+    `zotero-prefpane-${config.addonRef}-ai-prompt`,
+    storedConfig.aiSummary.prompt,
+  );
+  setRadioValue(
+    doc,
+    getAiSummaryScheduleModeName(),
+    storedConfig.aiSummary.schedule?.mode || "interval",
+  );
+  setInputValue(
+    doc,
+    `zotero-prefpane-${config.addonRef}-ai-schedule-interval-hours`,
+    String(storedConfig.aiSummary.schedule?.intervalHours || 24),
+  );
+  setInputValue(
+    doc,
+    `zotero-prefpane-${config.addonRef}-ai-schedule-daily-time`,
+    storedConfig.aiSummary.schedule?.dailyTime || "09:00",
+  );
+  setInputValue(
+    doc,
+    `zotero-prefpane-${config.addonRef}-ai-subscription-name`,
+    storedConfig.aiSummary.subscription.name,
+  );
+  setInputValue(
+    doc,
+    `zotero-prefpane-${config.addonRef}-ai-subscription-refresh-interval`,
+    String(storedConfig.aiSummary.subscription.refreshIntervalHours),
+  );
+  setInputValue(
+    doc,
+    `zotero-prefpane-${config.addonRef}-ai-subscription-cleanup-read`,
+    String(storedConfig.aiSummary.subscription.cleanupReadAfterDays),
+  );
+  setInputValue(
+    doc,
+    `zotero-prefpane-${config.addonRef}-ai-subscription-cleanup-unread`,
+    String(storedConfig.aiSummary.subscription.cleanupUnreadAfterDays),
+  );
+  updateAiSummaryScheduleControls(doc);
 }
 
 function applyRuntimeSummary(doc: Document, summary: FeedRuntimeSummary) {
@@ -626,6 +845,24 @@ function applyRuntimeSummary(doc: Document, summary: FeedRuntimeSummary) {
   );
   setDisplayValue(
     doc,
+    `zotero-prefpane-${config.addonRef}-ai-summary-enabled`,
+    summary.aiSummaryEnabled
+      ? getMessage("pref-enabled")
+      : getMessage("pref-disabled"),
+  );
+  setDisplayValue(
+    doc,
+    `zotero-prefpane-${config.addonRef}-ai-generated-at`,
+    formatTimestamp(summary.aiSummaryGeneratedAt),
+    { title: summary.aiSummaryGeneratedAt || undefined },
+  );
+  setDisplayValue(
+    doc,
+    `zotero-prefpane-${config.addonRef}-ai-summary-count`,
+    String(summary.aiSummaryItemCount),
+  );
+  setDisplayValue(
+    doc,
     `zotero-prefpane-${config.addonRef}-last-error`,
     summary.lastError || getMessage("pref-last-error-empty"),
     { title: summary.lastError || undefined },
@@ -649,10 +886,21 @@ async function refreshPreferencePane(
     formatNullableValue(state?.rssUrl || null),
     { title: state?.rssUrl || undefined },
   );
+  setDisplayValue(
+    doc,
+    `zotero-prefpane-${config.addonRef}-ai-rss-url`,
+    formatNullableValue(state?.aiRssUrl || null),
+    { title: state?.aiRssUrl || undefined },
+  );
   setButtonEnabled(
     doc,
     `zotero-prefpane-${config.addonRef}-copy-rss-url`,
     !!state?.rssUrl,
+  );
+  setButtonEnabled(
+    doc,
+    `zotero-prefpane-${config.addonRef}-copy-ai-rss-url`,
+    !!state?.aiRssUrl,
   );
 
   applyRuntimeSummary(doc, summary);
@@ -736,18 +984,29 @@ function formatImportResultMessage(result: ConfigImportResult) {
 
 function bindPreferenceActions(window: Window) {
   const doc = window.document;
-  const root = doc.documentElement;
-  const bindingKey = `data-${config.addonRef}-bound`;
-  if (root?.getAttribute(bindingKey) === "true") {
-    return;
-  }
-  root?.setAttribute(bindingKey, "true");
 
   bindJournalColumnResizer(window);
+  for (const input of Array.from(
+    doc.querySelectorAll(`input[name="${getAiSummaryScheduleModeName()}"]`),
+  ) as HTMLInputElement[]) {
+    if (input.dataset.paperfeedBound === "true") {
+      continue;
+    }
+
+    input.dataset.paperfeedBound = "true";
+    input.addEventListener("change", () => {
+      updateAiSummaryScheduleControls(doc);
+    });
+  }
   bindCopyButton(
     doc,
     `zotero-prefpane-${config.addonRef}-copy-rss-url`,
     () => addon.api.getServerState()?.rssUrl || null,
+  );
+  bindCopyButton(
+    doc,
+    `zotero-prefpane-${config.addonRef}-copy-ai-rss-url`,
+    () => addon.api.getServerState()?.aiRssUrl || null,
   );
   bindExternalLink(
     doc,
@@ -755,22 +1014,27 @@ function bindPreferenceActions(window: Window) {
     "https://github.com/Jarvis-Towne/paper-feed-zotero",
   );
 
-  doc
-    .getElementById(`zotero-prefpane-${config.addonRef}-add-journal-row`)
-    ?.addEventListener("click", () => {
+  bindButtonClick(
+    doc,
+    `zotero-prefpane-${config.addonRef}-add-journal-row`,
+    () => {
       getJournalRowsContainer(doc)?.appendChild(createJournalRow(doc));
       scheduleJournalColumnLayout(window);
-    });
+    },
+  );
 
-  doc
-    .getElementById(`zotero-prefpane-${config.addonRef}-add-keyword-row`)
-    ?.addEventListener("click", () => {
+  bindButtonClick(
+    doc,
+    `zotero-prefpane-${config.addonRef}-add-keyword-row`,
+    () => {
       getKeywordRowsContainer(doc)?.appendChild(createKeywordRow(doc));
-    });
+    },
+  );
 
-  doc
-    .getElementById(`zotero-prefpane-${config.addonRef}-import-config`)
-    ?.addEventListener("click", async () => {
+  bindButtonClick(
+    doc,
+    `zotero-prefpane-${config.addonRef}-import-config`,
+    async () => {
       try {
         const path = await pickOpenFilePath(
           window,
@@ -783,7 +1047,7 @@ function bindPreferenceActions(window: Window) {
 
         setMessage(doc, getMessage("pref-ui-message-import-running"));
         const result = await addon.api.importConfigFromPath(path);
-        await addon.api.syncAutoFetchScheduler("config-change");
+        await syncSchedulers("config-change");
         await refreshPreferencePane(window, { keepMessage: true });
         setMessage(doc, formatImportResultMessage(result));
       } catch (error) {
@@ -794,14 +1058,16 @@ function bindPreferenceActions(window: Window) {
           }),
         );
       }
-    });
+    },
+  );
 
-  doc
-    .getElementById(`zotero-prefpane-${config.addonRef}-export-config`)
-    ?.addEventListener("click", async () => {
+  bindButtonClick(
+    doc,
+    `zotero-prefpane-${config.addonRef}-export-config`,
+    async () => {
       try {
         await writeConfig(readConfigFromForm(doc));
-        await addon.api.syncAutoFetchScheduler("config-change");
+        await syncSchedulers("config-change");
         const path = await pickSaveFilePath(
           window,
           getMessage("pref-export-config-dialog-title"),
@@ -828,14 +1094,16 @@ function bindPreferenceActions(window: Window) {
           }),
         );
       }
-    });
+    },
+  );
 
-  doc
-    .getElementById(`zotero-prefpane-${config.addonRef}-save-config`)
-    ?.addEventListener("click", async () => {
+  bindButtonClick(
+    doc,
+    `zotero-prefpane-${config.addonRef}-save-config`,
+    async () => {
       try {
         await writeConfig(readConfigFromForm(doc));
-        await addon.api.syncAutoFetchScheduler("config-change");
+        await syncSchedulers("config-change");
         await refreshPreferencePane(window, { keepMessage: true });
         setMessage(doc, getMessage("pref-ui-message-save-success"));
       } catch (error) {
@@ -846,26 +1114,40 @@ function bindPreferenceActions(window: Window) {
           }),
         );
       }
-    });
+    },
+  );
 
-  doc
-    .getElementById(`zotero-prefpane-${config.addonRef}-run-fetch`)
-    ?.addEventListener("click", async () => {
+  bindButtonClick(
+    doc,
+    `zotero-prefpane-${config.addonRef}-run-fetch`,
+    async () => {
       try {
         setMessage(doc, getMessage("pref-ui-message-fetch-running"));
-        await writeConfig(readConfigFromForm(doc));
+        const nextConfig = readConfigFromForm(doc);
+        await writeConfig(nextConfig);
         const result = await addon.api.rebuildFeedCache();
-        await addon.api.syncAutoFetchScheduler("post-run");
+        const aiResult = nextConfig.aiSummary.enabled
+          ? await addon.api.rebuildAiSummaryCache({ force: true })
+          : null;
+        await syncSchedulers("post-run");
         await refreshPreferencePane(window, { keepMessage: true });
+        const args = {
+          newCount: result.newItems.length,
+          totalCount: result.items.length,
+        };
         setMessage(
           doc,
-          getMessage("pref-ui-message-fetch-success", {
-            newCount: result.newItems.length,
-            totalCount: result.items.length,
-          }),
+          aiResult
+            ? aiResult.issue
+              ? getMessage("pref-ui-message-fetch-success-ai-issue", {
+                  ...args,
+                  error: aiResult.issue,
+                })
+              : getMessage("pref-ui-message-fetch-success-with-ai", args)
+            : getMessage("pref-ui-message-fetch-success", args),
         );
       } catch (error) {
-        await addon.api.syncAutoFetchScheduler("post-run");
+        await syncSchedulers("post-run");
         await refreshPreferencePane(window, { keepMessage: true });
         setMessage(
           doc,
@@ -874,15 +1156,43 @@ function bindPreferenceActions(window: Window) {
           }),
         );
       }
-    });
+    },
+  );
 
-  doc
-    .getElementById(`zotero-prefpane-${config.addonRef}-apply-feed`)
-    ?.addEventListener("click", async () => {
+  bindButtonClick(
+    doc,
+    `zotero-prefpane-${config.addonRef}-test-ai`,
+    async () => {
+      try {
+        setMessage(doc, getMessage("pref-ui-message-ai-test-running"));
+        const result = await addon.api.testAiSummaryConnection(
+          readAiSummaryConfigFromForm(doc),
+        );
+        setMessage(
+          doc,
+          getMessage("pref-ui-message-ai-test-success", {
+            message: result.message,
+          }),
+        );
+      } catch (error) {
+        setMessage(
+          doc,
+          getMessage("pref-ui-message-ai-test-failed", {
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+      }
+    },
+  );
+
+  bindButtonClick(
+    doc,
+    `zotero-prefpane-${config.addonRef}-apply-feed`,
+    async () => {
       try {
         setMessage(doc, getMessage("pref-ui-message-feed-running"));
         await writeConfig(readConfigFromForm(doc));
-        await addon.api.syncAutoFetchScheduler("config-change");
+        await syncSchedulers("config-change");
         const result = await addon.api.provisionManagedFeedSubscription();
         await refreshPreferencePane(window, { keepMessage: true });
         setMessage(
@@ -901,14 +1211,46 @@ function bindPreferenceActions(window: Window) {
           }),
         );
       }
-    });
+    },
+  );
 
-  doc
-    .getElementById(`zotero-prefpane-${config.addonRef}-refresh-status`)
-    ?.addEventListener("click", async () => {
+  bindButtonClick(
+    doc,
+    `zotero-prefpane-${config.addonRef}-apply-ai-feed`,
+    async () => {
+      try {
+        setMessage(doc, getMessage("pref-ui-message-ai-feed-running"));
+        await writeConfig(readConfigFromForm(doc));
+        await syncSchedulers("config-change");
+        const result = await addon.api.provisionManagedAiFeedSubscription();
+        await refreshPreferencePane(window, { keepMessage: true });
+        setMessage(
+          doc,
+          getMessage("pref-ui-message-ai-feed-success", {
+            action: result.action,
+            libraryID: result.libraryID,
+            url: result.url,
+          }),
+        );
+      } catch (error) {
+        setMessage(
+          doc,
+          getMessage("pref-ui-message-ai-feed-failed", {
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+      }
+    },
+  );
+
+  bindButtonClick(
+    doc,
+    `zotero-prefpane-${config.addonRef}-refresh-status`,
+    async () => {
       await refreshPreferencePane(window, { keepMessage: true });
       setMessage(doc, getMessage("pref-ui-message-status-refreshed"));
-    });
+    },
+  );
 }
 
 export function registerPreferencePane() {

@@ -1,8 +1,11 @@
-import type {
-  PluginConfig,
-  PluginRunState,
-} from "../domain/types";
-import { rebuildFeedCache } from "../fetch/fetchService";
+import type { PluginConfig, PluginRunState } from "../domain/types";
+import {
+  getAiSummaryIntervalMs as getConfiguredAiSummaryIntervalMs,
+  getAiSummaryPostRunDelayMs,
+  getAiSummaryStartupDelayMs,
+  normalizeAiSummarySchedule,
+} from "../ai/aiSummarySchedule";
+import { rebuildAiSummaryCache, rebuildFeedCache } from "../fetch/fetchService";
 import { readConfig } from "../storage/configStore";
 import { readRunState } from "../storage/runStateStore";
 
@@ -13,7 +16,10 @@ export type SchedulerSyncReason = "startup" | "config-change" | "post-run";
 export type ScheduledTriggerReason = "scheduled" | "startup-catchup";
 
 export interface SchedulerTimerDriver {
-  setTimeout: (callback: () => void | Promise<void>, delayMs: number) => unknown;
+  setTimeout: (
+    callback: () => void | Promise<void>,
+    delayMs: number,
+  ) => unknown;
   clearTimeout: (handle: unknown) => void;
 }
 
@@ -37,10 +43,46 @@ export interface AutoFetchSchedulerDependencies {
   logError?: (error: unknown) => void;
 }
 
+export interface AiSummarySchedulerState {
+  enabled: boolean;
+  intervalHours: number | null;
+  scheduleMode: "interval" | "daily" | null;
+  dailyTime: string | null;
+  running: boolean;
+  scheduled: boolean;
+  nextRunAt: string | null;
+  lastTriggerAt: string | null;
+  lastTriggerReason: ScheduledTriggerReason | null;
+}
+
+export interface AiSummarySchedulerDependencies {
+  readConfig: () => Promise<PluginConfig>;
+  readRunState: () => Promise<PluginRunState>;
+  rebuildAiSummaryCache: () => Promise<unknown>;
+  now?: () => Date;
+  timer?: SchedulerTimerDriver;
+  logDebug?: (message: string) => void;
+  logError?: (error: unknown) => void;
+}
+
 function createDefaultState(): AutoFetchSchedulerState {
   return {
     enabled: false,
     intervalHours: null,
+    running: false,
+    scheduled: false,
+    nextRunAt: null,
+    lastTriggerAt: null,
+    lastTriggerReason: null,
+  };
+}
+
+function createDefaultAiSummaryState(): AiSummarySchedulerState {
+  return {
+    enabled: false,
+    intervalHours: null,
+    scheduleMode: null,
+    dailyTime: null,
     running: false,
     scheduled: false,
     nextRunAt: null,
@@ -86,9 +128,7 @@ function parseTimestamp(value: string | null) {
 }
 
 export function normalizeAutoFetchIntervalHours(value: number) {
-  return Number.isFinite(value) && value > 0
-    ? value
-    : DEFAULT_INTERVAL_HOURS;
+  return Number.isFinite(value) && value > 0 ? value : DEFAULT_INTERVAL_HOURS;
 }
 
 export function getAutoFetchIntervalMs(intervalHours: number) {
@@ -96,6 +136,10 @@ export function getAutoFetchIntervalMs(intervalHours: number) {
     1,
     Math.round(normalizeAutoFetchIntervalHours(intervalHours) * MS_PER_HOUR),
   );
+}
+
+export function getAiSummaryIntervalMs(intervalHours: number) {
+  return getConfiguredAiSummaryIntervalMs(intervalHours);
 }
 
 export function getStartupCatchUpDelayMs(input: {
@@ -121,7 +165,10 @@ export function getStartupCatchUpDelayMs(input: {
 
 export class AutoFetchScheduler {
   private readonly deps: Required<
-    Pick<AutoFetchSchedulerDependencies, "now" | "timer" | "logDebug" | "logError">
+    Pick<
+      AutoFetchSchedulerDependencies,
+      "now" | "timer" | "logDebug" | "logError"
+    >
   > &
     AutoFetchSchedulerDependencies;
 
@@ -252,14 +299,162 @@ export class AutoFetchScheduler {
     } finally {
       this.state.running = false;
 
-      if (!this.state.enabled || token !== this.scheduleToken) {
-        return;
+      if (this.state.enabled && token === this.scheduleToken) {
+        try {
+          await this.sync("post-run");
+        } catch (error) {
+          this.deps.logError(error);
+        }
       }
+    }
+  }
+}
 
-      try {
-        await this.sync("post-run");
-      } catch (error) {
-        this.deps.logError(error);
+export class AiSummaryScheduler {
+  private readonly deps: Required<
+    Pick<
+      AiSummarySchedulerDependencies,
+      "now" | "timer" | "logDebug" | "logError"
+    >
+  > &
+    AiSummarySchedulerDependencies;
+
+  private state: AiSummarySchedulerState = createDefaultAiSummaryState();
+  private timeoutHandle: unknown = null;
+  private scheduleToken = 0;
+  private syncTask: Promise<void> = Promise.resolve();
+
+  constructor(dependencies: AiSummarySchedulerDependencies) {
+    this.deps = {
+      ...dependencies,
+      now: dependencies.now ?? defaultNow,
+      timer: dependencies.timer ?? DEFAULT_TIMER_DRIVER,
+      logDebug: dependencies.logDebug ?? defaultLogDebug,
+      logError: dependencies.logError ?? defaultLogError,
+    };
+  }
+
+  getState(): AiSummarySchedulerState {
+    return { ...this.state };
+  }
+
+  async start() {
+    await this.sync("startup");
+  }
+
+  async sync(reason: SchedulerSyncReason = "config-change") {
+    const queuedSync = this.syncTask
+      .catch(() => undefined)
+      .then(() => this.performSync(reason));
+    this.syncTask = queuedSync;
+    await queuedSync;
+  }
+
+  stop() {
+    this.cancelScheduledRun();
+    this.state.enabled = false;
+  }
+
+  private async performSync(reason: SchedulerSyncReason) {
+    const config = await this.deps.readConfig();
+    const schedule = normalizeAiSummarySchedule(config.aiSummary.schedule);
+
+    this.state.enabled = config.aiSummary.enabled;
+    this.state.intervalHours = schedule.intervalHours;
+    this.state.scheduleMode = schedule.mode;
+    this.state.dailyTime = schedule.dailyTime;
+    this.cancelScheduledRun();
+
+    if (!config.aiSummary.enabled) {
+      this.deps.logDebug("[Paper Feed] AI summary scheduler disabled.");
+      return;
+    }
+
+    let delayMs = getAiSummaryPostRunDelayMs({
+      schedule,
+      now: this.deps.now(),
+    });
+    let triggerReason: ScheduledTriggerReason = "scheduled";
+
+    if (reason !== "post-run") {
+      const runState = await this.deps.readRunState();
+      delayMs = getAiSummaryStartupDelayMs({
+        schedule,
+        lastSuccessAt: runState.aiSummaryLastSuccessAt,
+        now: this.deps.now(),
+      });
+      triggerReason = delayMs === 0 ? "startup-catchup" : "scheduled";
+    }
+
+    this.schedule(delayMs, triggerReason);
+  }
+
+  private schedule(delayMs: number, triggerReason: ScheduledTriggerReason) {
+    const normalizedDelay = Math.max(0, Math.floor(delayMs));
+    const token = this.scheduleToken;
+    const nextRunAt = new Date(
+      this.deps.now().getTime() + normalizedDelay,
+    ).toISOString();
+
+    this.state.scheduled = true;
+    this.state.nextRunAt = nextRunAt;
+    this.timeoutHandle = this.deps.timer.setTimeout(
+      () => this.handleScheduledRun(token, triggerReason),
+      normalizedDelay,
+    );
+    this.deps.logDebug(
+      `[Paper Feed] AI summary scheduler armed for ${nextRunAt} (${triggerReason}).`,
+    );
+  }
+
+  private cancelScheduledRun() {
+    this.scheduleToken += 1;
+
+    if (this.timeoutHandle !== null) {
+      this.deps.timer.clearTimeout(this.timeoutHandle);
+      this.timeoutHandle = null;
+    }
+
+    this.state.scheduled = false;
+    this.state.nextRunAt = null;
+  }
+
+  private async handleScheduledRun(
+    token: number,
+    triggerReason: ScheduledTriggerReason,
+  ) {
+    if (token !== this.scheduleToken || !this.state.enabled) {
+      return;
+    }
+
+    this.timeoutHandle = null;
+    this.state.scheduled = false;
+    this.state.nextRunAt = null;
+
+    if (this.state.running) {
+      return;
+    }
+
+    this.state.running = true;
+    this.state.lastTriggerAt = this.deps.now().toISOString();
+    this.state.lastTriggerReason = triggerReason;
+    this.deps.logDebug(
+      `[Paper Feed] AI summary triggered at ${this.state.lastTriggerAt} (${triggerReason}).`,
+    );
+
+    try {
+      await this.deps.rebuildAiSummaryCache();
+    } catch (error) {
+      this.deps.logError(error);
+    } finally {
+      this.state.running = false;
+
+      if (this.state.enabled && token === this.scheduleToken) {
+        try {
+          await this.sync("post-run");
+        } catch (error) {
+          this.deps.logError(error);
+        }
       }
     }
   }
@@ -271,8 +466,18 @@ const autoFetchScheduler = new AutoFetchScheduler({
   rebuildFeedCache,
 });
 
+const aiSummaryScheduler = new AiSummaryScheduler({
+  readConfig,
+  readRunState,
+  rebuildAiSummaryCache,
+});
+
 export async function startAutoFetchScheduler() {
   await autoFetchScheduler.start();
+}
+
+export async function startAiSummaryScheduler() {
+  await aiSummaryScheduler.start();
 }
 
 export async function syncAutoFetchScheduler(
@@ -281,10 +486,24 @@ export async function syncAutoFetchScheduler(
   await autoFetchScheduler.sync(reason);
 }
 
+export async function syncAiSummaryScheduler(
+  reason: SchedulerSyncReason = "config-change",
+) {
+  await aiSummaryScheduler.sync(reason);
+}
+
 export function stopAutoFetchScheduler() {
   autoFetchScheduler.stop();
 }
 
+export function stopAiSummaryScheduler() {
+  aiSummaryScheduler.stop();
+}
+
 export function getAutoFetchSchedulerState() {
   return autoFetchScheduler.getState();
+}
+
+export function getAiSummarySchedulerState() {
+  return aiSummaryScheduler.getState();
 }

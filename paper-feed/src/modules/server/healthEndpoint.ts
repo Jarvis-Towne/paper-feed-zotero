@@ -10,6 +10,7 @@ function toErrorMessage(error: unknown) {
 export class HealthEndpoint {
   supportedMethods = ["GET"];
   supportedDataTypes = ["application/json"];
+  allowRequestsFromUnsafeWebContent = true;
 
   async init(_data: unknown, sendResponseCallback: SendResponseCallback) {
     try {

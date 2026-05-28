@@ -8,7 +8,9 @@ import {
 } from "./modules/server/server";
 import { ensureFeedStorageInitialized } from "./modules/fetch/fetchService";
 import {
+  startAiSummaryScheduler,
   startAutoFetchScheduler,
+  stopAiSummaryScheduler,
   stopAutoFetchScheduler,
 } from "./modules/scheduler/scheduler";
 import { initLocale } from "./utils/locale";
@@ -35,23 +37,20 @@ async function onStartup() {
       baseUrl: null,
       healthUrl: null,
       rssUrl: null,
+      aiRssUrl: null,
       endpointStrategy: "legacy-init-2arg async",
       error:
         error instanceof Error ? error.message : "Unknown server startup error",
       generatedAt: null,
       storedItemCount: 0,
     };
-    Zotero.logError(
-      error instanceof Error ? error : new Error(String(error)),
-    );
+    Zotero.logError(error instanceof Error ? error : new Error(String(error)));
   }
 
   try {
-    await startAutoFetchScheduler();
+    await Promise.all([startAutoFetchScheduler(), startAiSummaryScheduler()]);
   } catch (error) {
-    Zotero.logError(
-      error instanceof Error ? error : new Error(String(error)),
-    );
+    Zotero.logError(error instanceof Error ? error : new Error(String(error)));
   }
 
   await Promise.all(
@@ -70,6 +69,7 @@ async function onMainWindowUnload(_win: Window): Promise<void> {
 }
 
 function onShutdown(): void {
+  stopAiSummaryScheduler();
   stopAutoFetchScheduler();
   unregisterServerEndpoints();
   addon.data.alive = false;

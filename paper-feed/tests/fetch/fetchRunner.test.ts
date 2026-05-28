@@ -68,6 +68,19 @@ test("runFetchPipeline normalizes feed URLs, filters matches, and dedupes result
       cleanupReadAfterDays: 30,
       cleanupUnreadAfterDays: 365,
     },
+    aiSummary: {
+      enabled: false,
+      baseUrl: "",
+      apiKey: "",
+      model: "",
+      prompt: "",
+      subscription: {
+        name: "Paper Feed AI Summary",
+        refreshIntervalHours: 24,
+        cleanupReadAfterDays: 30,
+        cleanupUnreadAfterDays: 365,
+      },
+    },
   };
 
   const previousItems: FeedEntry[] = [

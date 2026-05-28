@@ -1,12 +1,12 @@
 import { ensureDate } from "../domain/normalize";
-import type { FeedEntry, FeedSnapshot } from "../domain/types";
+import type { AiSummarySnapshot, FeedEntry } from "../domain/types";
 import {
   readTextFileIfExists,
   writeTextFile,
 } from "../zotero/compat/fileSystem";
-import { getSnapshotFilePath } from "./paths";
+import { getAiSummarySnapshotFilePath } from "./paths";
 
-export const DEFAULT_FEED_SNAPSHOT: FeedSnapshot = {
+export const DEFAULT_AI_SUMMARY_SNAPSHOT: AiSummarySnapshot = {
   generatedAt: null,
   items: [],
 };
@@ -25,7 +25,7 @@ function parseEntry(raw: Partial<FeedEntry>): FeedEntry {
     title: raw.title || "(untitled)",
     link: fallbackLink,
     summary: raw.summary || "",
-    journal: raw.journal || "Unknown Journal",
+    journal: raw.journal || "Paper Feed AI",
     id: raw.id || fallbackLink,
     pubDate: ensureDate(raw.pubDate),
     doi: raw.doi ?? null,
@@ -34,14 +34,14 @@ function parseEntry(raw: Partial<FeedEntry>): FeedEntry {
   };
 }
 
-export function createEmptyFeedSnapshot(): FeedSnapshot {
+export function createEmptyAiSummarySnapshot(): AiSummarySnapshot {
   return {
-    ...DEFAULT_FEED_SNAPSHOT,
+    ...DEFAULT_AI_SUMMARY_SNAPSHOT,
     items: [],
   };
 }
 
-export function serializeFeedSnapshot(snapshot: FeedSnapshot) {
+export function serializeAiSummarySnapshot(snapshot: AiSummarySnapshot) {
   return JSON.stringify(
     {
       generatedAt: snapshot.generatedAt ?? null,
@@ -52,8 +52,8 @@ export function serializeFeedSnapshot(snapshot: FeedSnapshot) {
   );
 }
 
-export function parseStoredFeedSnapshot(raw: string): FeedSnapshot {
-  const parsed = JSON.parse(raw) as Partial<FeedSnapshot> & {
+export function parseStoredAiSummarySnapshot(raw: string): AiSummarySnapshot {
+  const parsed = JSON.parse(raw) as Partial<AiSummarySnapshot> & {
     items?: Partial<FeedEntry>[];
   };
 
@@ -63,29 +63,29 @@ export function parseStoredFeedSnapshot(raw: string): FeedSnapshot {
   };
 }
 
-export async function readFeedSnapshot(
+export async function readAiSummarySnapshot(
   baseDir?: string,
-): Promise<FeedSnapshot> {
-  const path = getSnapshotFilePath(baseDir);
+): Promise<AiSummarySnapshot> {
+  const path = getAiSummarySnapshotFilePath(baseDir);
   const raw = await readTextFileIfExists(path);
 
   if (!raw) {
-    return createEmptyFeedSnapshot();
+    return createEmptyAiSummarySnapshot();
   }
 
-  return parseStoredFeedSnapshot(raw);
+  return parseStoredAiSummarySnapshot(raw);
 }
 
-export async function writeFeedSnapshot(
-  snapshot: FeedSnapshot,
+export async function writeAiSummarySnapshot(
+  snapshot: AiSummarySnapshot,
   baseDir?: string,
 ): Promise<void> {
-  const path = getSnapshotFilePath(baseDir);
-  await writeTextFile(path, serializeFeedSnapshot(snapshot));
+  const path = getAiSummarySnapshotFilePath(baseDir);
+  await writeTextFile(path, serializeAiSummarySnapshot(snapshot));
 }
 
-export async function ensureFeedSnapshotInitialized(baseDir?: string) {
-  const snapshot = await readFeedSnapshot(baseDir);
-  await writeFeedSnapshot(snapshot, baseDir);
+export async function ensureAiSummarySnapshotInitialized(baseDir?: string) {
+  const snapshot = await readAiSummarySnapshot(baseDir);
+  await writeAiSummarySnapshot(snapshot, baseDir);
   return snapshot;
 }

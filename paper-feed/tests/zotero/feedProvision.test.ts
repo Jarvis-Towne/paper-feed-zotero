@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   getDefaultManagedFeedName,
+  isManagedAiFeedUrl,
   isManagedFeedUrl,
   normalizeManagedFeedSettings,
 } from "../../src/modules/zotero/feedProvision";
@@ -10,8 +11,22 @@ import {
 test("managed feed helpers keep naming and URL rules stable", () => {
   assert.equal(getDefaultManagedFeedName("default"), "Paper Feed (default)");
   assert.equal(getDefaultManagedFeedName(""), "Paper Feed");
-  assert.equal(isManagedFeedUrl("http://127.0.0.1:23119/paper-feed/rss/default"), true);
-  assert.equal(isManagedFeedUrl("http://127.0.0.1:23119/connector/ping"), false);
+  assert.equal(
+    isManagedFeedUrl("http://127.0.0.1:23119/paper-feed/rss/default"),
+    true,
+  );
+  assert.equal(
+    isManagedAiFeedUrl("http://127.0.0.1:23119/paper-feed/rss/ai"),
+    true,
+  );
+  assert.equal(
+    isManagedAiFeedUrl("http://127.0.0.1:23119/paper-feed/rss/default"),
+    false,
+  );
+  assert.equal(
+    isManagedFeedUrl("http://127.0.0.1:23119/connector/ping"),
+    false,
+  );
   assert.deepEqual(
     normalizeManagedFeedSettings({
       profileName: "default",

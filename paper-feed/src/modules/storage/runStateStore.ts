@@ -11,6 +11,9 @@ export const DEFAULT_PLUGIN_RUN_STATE: PluginRunState = {
   lastError: null,
   generatedAt: null,
   seenIds: [],
+  aiSummarySubmittedIds: [],
+  aiSummaryLastRunAt: null,
+  aiSummaryLastSuccessAt: null,
   lastMatchCount: 0,
   storedItemCount: 0,
 };
@@ -19,6 +22,7 @@ export function createDefaultRunState(): PluginRunState {
   return {
     ...DEFAULT_PLUGIN_RUN_STATE,
     seenIds: [],
+    aiSummarySubmittedIds: [],
   };
 }
 
@@ -35,6 +39,9 @@ export function parseStoredRunState(raw: string): PluginRunState {
     lastError: parsed.lastError ?? null,
     generatedAt: parsed.generatedAt ?? null,
     seenIds: parsed.seenIds || [],
+    aiSummarySubmittedIds: parsed.aiSummarySubmittedIds || [],
+    aiSummaryLastRunAt: parsed.aiSummaryLastRunAt ?? null,
+    aiSummaryLastSuccessAt: parsed.aiSummaryLastSuccessAt ?? null,
     lastMatchCount: parsed.lastMatchCount ?? 0,
     storedItemCount: parsed.storedItemCount ?? 0,
   };
@@ -71,6 +78,9 @@ export function createSuccessfulRunState(
     generatedAt: string;
     lastError: string | null;
     seenIds: string[];
+    aiSummarySubmittedIds?: string[];
+    aiSummaryLastRunAt?: string | null;
+    aiSummaryLastSuccessAt?: string | null;
     lastMatchCount: number;
     storedItemCount: number;
   },
@@ -82,6 +92,11 @@ export function createSuccessfulRunState(
     lastError: input.lastError,
     generatedAt: input.generatedAt,
     seenIds: [...input.seenIds],
+    aiSummarySubmittedIds:
+      input.aiSummarySubmittedIds ?? previous.aiSummarySubmittedIds,
+    aiSummaryLastRunAt: input.aiSummaryLastRunAt ?? previous.aiSummaryLastRunAt,
+    aiSummaryLastSuccessAt:
+      input.aiSummaryLastSuccessAt ?? previous.aiSummaryLastSuccessAt,
     lastMatchCount: input.lastMatchCount,
     storedItemCount: input.storedItemCount,
   };

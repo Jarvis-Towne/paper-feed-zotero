@@ -45,12 +45,14 @@
   color: var(--paperfeed-muted-text);
   opacity: 0.78;
   line-height: 1.6;
+  font-size: 13px;
 }
 
 .paperfeed-page-footer {
   padding: 4px 4px 0;
   color: inherit;
   opacity: 0.72;
+  font-size: 12px;
 }
 
 .paperfeed-page-footer > * + * {
@@ -92,16 +94,25 @@
   margin: 0 0 8px;
 }
 
+.paperfeed-card html|h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
 .paperfeed-card > description {
   display: block;
   margin: 0 0 18px;
   color: var(--paperfeed-muted-text);
   opacity: 0.78;
   line-height: 1.6;
+  font-size: 13px;
 }
 
 .paperfeed-card > hbox,
 .paperfeed-card > vbox,
+.paperfeed-card > .paperfeed-subsection,
 .paperfeed-card > .paperfeed-form-grid,
 .paperfeed-card > .paperfeed-status-layout {
   margin-top: 18px;
@@ -159,6 +170,7 @@
   background: var(--paperfeed-button-bg);
   color: inherit;
   font-weight: 600;
+  font-size: 13px;
   transition:
     background-color 0.16s ease,
     border-color 0.16s ease,
@@ -221,6 +233,7 @@
   z-index: 2;
   background: rgba(127, 127, 127, 0.1);
   border-bottom: 1px solid rgba(127, 127, 127, 0.24);
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -292,8 +305,44 @@
 .paperfeed-action-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
+}
+
+.paperfeed-action-toolbar > html|button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.paperfeed-subsection {
+  padding-top: 18px;
+  border-top: 1px solid rgba(120, 120, 120, 0.16);
+}
+
+.paperfeed-subsection html|h4,
+.paperfeed-subsection-title {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.paperfeed-subsection html|p,
+.paperfeed-subsection-description {
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+  color: var(--paperfeed-muted-text);
+  opacity: 0.78;
+  line-height: 1.6;
+  font-size: 13px;
 }
 
 .paperfeed-form-grid {
@@ -308,8 +357,13 @@
   column-gap: 16px;
 }
 
+.paperfeed-form-row-stack {
+  align-items: start;
+}
+
 .paperfeed-form-label {
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: inherit;
   opacity: 0.88;
 }
@@ -334,16 +388,56 @@
   width: 120px;
 }
 
+.paperfeed-form-input.is-time {
+  width: 132px;
+}
+
+.paperfeed-form-textarea {
+  box-sizing: border-box;
+  width: min(720px, 100%);
+  min-height: 180px;
+}
+
 .paperfeed-form-unit {
   opacity: 0.75;
   white-space: nowrap;
+  font-size: 12px;
+}
+
+.paperfeed-schedule-control {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.paperfeed-schedule-option {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 34px;
+}
+
+.paperfeed-schedule-option html|input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #0f5ed7;
 }
 
 .paperfeed-form-actions {
   display: flex;
   grid-column: 1 / -1;
+  align-items: center;
+  gap: 10px;
   justify-content: flex-end;
   margin-top: 8px;
+}
+
+.paperfeed-inline-message {
+  min-width: 0;
+  color: inherit;
+  opacity: 0.78;
+  overflow-wrap: anywhere;
 }
 
 .paperfeed-primary-button {
@@ -390,7 +484,8 @@
 .paperfeed-description-row dt {
   display: flex;
   align-items: center;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   min-height: 32px;
   opacity: 0.8;
 }
@@ -515,14 +610,15 @@
 }
 
 .paperfeed-stat-label {
-  font-size: 12px;
-  opacity: 0.75;
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.78;
 }
 
 .paperfeed-stat-value {
   margin-top: 6px;
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: 800;
   line-height: 1.1;
 }
 
@@ -534,9 +630,9 @@
 }
 
 .paperfeed-error-label {
-  font-size: 12px;
-  font-weight: 600;
-  opacity: 0.8;
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.85;
 }
 
 .paperfeed-error-value {

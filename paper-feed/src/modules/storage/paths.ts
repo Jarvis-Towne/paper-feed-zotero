@@ -2,6 +2,7 @@ export const STORAGE_DIR_NAME = "paper-feed";
 export const CONFIG_FILE_NAME = "paper-feed.config.json";
 export const RUN_STATE_FILE_NAME = "paper-feed.state.json";
 export const SNAPSHOT_FILE_NAME = "paper-feed.snapshot.json";
+export const AI_SUMMARY_SNAPSHOT_FILE_NAME = "paper-feed.ai-summary.json";
 
 function getDefaultDataDir() {
   if (typeof Zotero === "undefined" || !Zotero.DataDirectory?.dir) {
@@ -12,11 +13,16 @@ function getDefaultDataDir() {
 }
 
 export function joinPath(...segments: string[]) {
-  if (typeof PathUtils !== "undefined" && typeof PathUtils.join === "function") {
+  if (
+    typeof PathUtils !== "undefined" &&
+    typeof PathUtils.join === "function"
+  ) {
     return PathUtils.join(...segments);
   }
 
-  const separator = segments.some((segment) => segment.includes("\\")) ? "\\" : "/";
+  const separator = segments.some((segment) => segment.includes("\\"))
+    ? "\\"
+    : "/";
 
   return segments
     .map((segment, index) => {
@@ -44,4 +50,8 @@ export function getRunStateFilePath(baseDir?: string) {
 
 export function getSnapshotFilePath(baseDir?: string) {
   return joinPath(getStorageDir(baseDir), SNAPSHOT_FILE_NAME);
+}
+
+export function getAiSummarySnapshotFilePath(baseDir?: string) {
+  return joinPath(getStorageDir(baseDir), AI_SUMMARY_SNAPSHOT_FILE_NAME);
 }

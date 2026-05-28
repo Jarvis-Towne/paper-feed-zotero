@@ -14,6 +14,53 @@ function firstNonEmpty(...values: Array<string | null | undefined>) {
   return null;
 }
 
+function normalizeCreatorName(value: unknown): string | null {
+  if (typeof value === "string") {
+    return value.trim() || null;
+  }
+
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const raw = value as {
+    firstName?: unknown;
+    lastName?: unknown;
+    name?: unknown;
+    creatorSummary?: unknown;
+  };
+  const name = firstNonEmpty(
+    typeof raw.name === "string" ? raw.name : null,
+    [raw.firstName, raw.lastName]
+      .filter((part): part is string => typeof part === "string")
+      .join(" "),
+    typeof raw.creatorSummary === "string" ? raw.creatorSummary : null,
+  );
+
+  return name || null;
+}
+
+function normalizeCreators(value: unknown): string | null {
+  if (Array.isArray(value)) {
+    const names = value
+      .map((creator) => normalizeCreatorName(creator))
+      .filter((name): name is string => !!name);
+    return names.length ? names.join(", ") : null;
+  }
+
+  return normalizeCreatorName(value);
+}
+
+function getItemAuthors(item: FeedSourceItem) {
+  return firstNonEmpty(
+    normalizeCreators(item.creators),
+    normalizeCreators(item.authors),
+    item.creatorSummary,
+    item.author,
+    item.creator,
+  );
+}
+
 export function normalizeFeedSourceUrl(url: string) {
   const trimmed = url.trim();
   if (!trimmed) {
@@ -53,5 +100,6 @@ export function normalizeFeedSourceItem(
     id: id || link!,
     pubDate: ensureDate(item.pubDate ?? item.date),
     doi: firstNonEmpty(item.DOI, item.doi),
+    authors: getItemAuthors(item),
   };
 }

@@ -1,0 +1,35 @@
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: #ffffff;
+}
+
+.paperfeed-ai-viewer {
+  width: 100%;
+  height: 100%;
+}
+
+.paperfeed-ai-viewer-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #ffffff;
+}
+
+.paperfeed-ai-viewer-message {
+  box-sizing: border-box;
+  max-width: 720px;
+  margin: 48px auto;
+  padding: 16px 18px;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  color: #24292f;
+  font:
+    14px/1.5 -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}

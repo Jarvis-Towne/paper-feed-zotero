@@ -6,6 +6,7 @@ export interface FeedEntry {
   id: string;
   pubDate: Date;
   doi?: string | null;
+  authors?: string | null;
   isOld?: boolean;
 }
 
@@ -31,6 +32,29 @@ export interface ManagedSubscriptionConfig {
   cleanupUnreadAfterDays: number;
 }
 
+export type AiSummaryScheduleMode = "interval" | "daily";
+
+export interface AiSummaryScheduleConfig {
+  mode: AiSummaryScheduleMode;
+  intervalHours: number;
+  dailyTime: string;
+}
+
+export interface AiSummaryConfig {
+  enabled: boolean;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  prompt: string;
+  schedule?: AiSummaryScheduleConfig;
+  subscription: ManagedSubscriptionConfig;
+}
+
+export interface AiSummarySnapshot {
+  generatedAt: string | null;
+  items: FeedEntry[];
+}
+
 export interface RssBuildOptions {
   title?: string;
   link?: string;
@@ -46,6 +70,7 @@ export interface PluginConfig {
   autoFetchIntervalHours: number;
   profileName: string;
   subscription: ManagedSubscriptionConfig;
+  aiSummary: AiSummaryConfig;
 }
 
 export interface PluginRunState {
@@ -54,6 +79,9 @@ export interface PluginRunState {
   lastError: string | null;
   generatedAt: string | null;
   seenIds: string[];
+  aiSummarySubmittedIds: string[];
+  aiSummaryLastRunAt: string | null;
+  aiSummaryLastSuccessAt: string | null;
   lastMatchCount: number;
   storedItemCount: number;
 }
@@ -71,6 +99,11 @@ export interface FeedSourceItem {
   pubDate?: Date | string | number | null;
   DOI?: string | null;
   doi?: string | null;
+  creators?: unknown;
+  authors?: unknown;
+  creatorSummary?: string | null;
+  author?: string | null;
+  creator?: string | null;
 }
 
 export interface FeedSourceResult {
@@ -95,6 +128,7 @@ export interface FeedFetchResult {
   seenIds: string[];
   errors: FeedFetchIssue[];
   xml: string;
+  aiSummaryGenerated?: boolean;
 }
 
 export interface FeedRuntimeSummary {
@@ -109,4 +143,7 @@ export interface FeedRuntimeSummary {
   queryCount: number;
   storedItemCount: number;
   lastMatchCount: number;
+  aiSummaryEnabled: boolean;
+  aiSummaryGeneratedAt: string | null;
+  aiSummaryItemCount: number;
 }

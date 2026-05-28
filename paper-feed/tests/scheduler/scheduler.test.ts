@@ -6,7 +6,9 @@ import type {
   PluginRunState,
 } from "../../src/modules/domain/types";
 import {
+  AiSummaryScheduler,
   AutoFetchScheduler,
+  getAiSummaryIntervalMs,
   getAutoFetchIntervalMs,
   getStartupCatchUpDelayMs,
 } from "../../src/modules/scheduler/scheduler";
@@ -53,17 +55,41 @@ function createConfig(overrides: Partial<PluginConfig> = {}): PluginConfig {
     autoFetchEnabled: false,
     autoFetchIntervalHours: 6,
     profileName: "default",
+    subscription: {
+      name: "Paper Feed",
+      refreshIntervalHours: 6,
+      cleanupReadAfterDays: 30,
+      cleanupUnreadAfterDays: 365,
+    },
+    aiSummary: {
+      enabled: false,
+      baseUrl: "",
+      apiKey: "",
+      model: "",
+      prompt: "",
+      subscription: {
+        name: "Paper Feed AI Summary",
+        refreshIntervalHours: 24,
+        cleanupReadAfterDays: 30,
+        cleanupUnreadAfterDays: 365,
+      },
+    },
     ...overrides,
   };
 }
 
-function createRunState(overrides: Partial<PluginRunState> = {}): PluginRunState {
+function createRunState(
+  overrides: Partial<PluginRunState> = {},
+): PluginRunState {
   return {
     lastRunAt: null,
     lastSuccessAt: null,
     lastError: null,
     generatedAt: null,
     seenIds: [],
+    aiSummarySubmittedIds: [],
+    aiSummaryLastRunAt: null,
+    aiSummaryLastSuccessAt: null,
     lastMatchCount: 0,
     storedItemCount: 0,
     ...overrides,
@@ -124,10 +150,7 @@ test("scheduler triggers catch-up once on startup and then rearms for the full i
   assert.equal(fetchCalls, 1);
   assert.equal(timer.size, 1);
   assert.equal(timer.getNextDelay(), getAutoFetchIntervalMs(4));
-  assert.equal(
-    scheduler.getState().lastTriggerReason,
-    "startup-catchup",
-  );
+  assert.equal(scheduler.getState().lastTriggerReason, "startup-catchup");
 });
 
 test("scheduler disables cleanly when auto-fetch is turned off", async () => {
@@ -194,4 +217,148 @@ test("scheduler backs off for a full interval after a failed run", async () => {
   assert.equal(loggedErrors, 1);
   assert.equal(timer.size, 1);
   assert.equal(timer.getNextDelay(), getAutoFetchIntervalMs(2));
+});
+
+test("AI summary scheduler uses AI summary success time and interval", async () => {
+  const timer = new FakeTimerDriver();
+  let aiSummaryCalls = 0;
+
+  const scheduler = new AiSummaryScheduler({
+    async readConfig() {
+      return createConfig({
+        aiSummary: {
+          enabled: true,
+          baseUrl: "https://api.example.com/v1",
+          apiKey: "sk-test",
+          model: "paper-model",
+          prompt: "materials discovery",
+          subscription: {
+            name: "Paper Feed AI Summary",
+            refreshIntervalHours: 24,
+            cleanupReadAfterDays: 30,
+            cleanupUnreadAfterDays: 365,
+          },
+        },
+      });
+    },
+    async readRunState() {
+      return createRunState({
+        lastSuccessAt: "2026-05-24T04:00:00.000Z",
+        aiSummaryLastSuccessAt: "2026-05-23T04:00:00.000Z",
+      });
+    },
+    async rebuildAiSummaryCache() {
+      aiSummaryCalls += 1;
+    },
+    now: () => new Date("2026-05-24T05:00:00.000Z"),
+    timer,
+  });
+
+  await scheduler.start();
+
+  assert.equal(timer.size, 1);
+  assert.equal(timer.getNextDelay(), 0);
+
+  await timer.runNext();
+
+  assert.equal(aiSummaryCalls, 1);
+  assert.equal(timer.size, 1);
+  assert.equal(timer.getNextDelay(), getAiSummaryIntervalMs(24));
+  assert.equal(scheduler.getState().lastTriggerReason, "startup-catchup");
+});
+
+test("AI summary scheduler stays independent of auto-fetch success time", async () => {
+  const timer = new FakeTimerDriver();
+
+  const scheduler = new AiSummaryScheduler({
+    async readConfig() {
+      return createConfig({
+        aiSummary: {
+          enabled: true,
+          baseUrl: "https://api.example.com/v1",
+          apiKey: "sk-test",
+          model: "paper-model",
+          prompt: "materials discovery",
+          subscription: {
+            name: "Paper Feed AI Summary",
+            refreshIntervalHours: 24,
+            cleanupReadAfterDays: 30,
+            cleanupUnreadAfterDays: 365,
+          },
+        },
+      });
+    },
+    async readRunState() {
+      return createRunState({
+        lastSuccessAt: "2026-05-24T04:00:00.000Z",
+        aiSummaryLastSuccessAt: "2026-05-24T04:00:00.000Z",
+      });
+    },
+    async rebuildAiSummaryCache() {
+      return;
+    },
+    now: () => new Date("2026-05-24T05:00:00.000Z"),
+    timer,
+  });
+
+  await scheduler.start();
+
+  assert.equal(timer.size, 1);
+  assert.equal(
+    timer.getNextDelay(),
+    getAiSummaryIntervalMs(24) - 60 * 60 * 1000,
+  );
+});
+
+test("AI summary scheduler can run at a fixed daily local time", async () => {
+  const timer = new FakeTimerDriver();
+  let aiSummaryCalls = 0;
+  let now = new Date(2026, 4, 24, 8, 0, 0, 0);
+
+  const scheduler = new AiSummaryScheduler({
+    async readConfig() {
+      return createConfig({
+        aiSummary: {
+          enabled: true,
+          baseUrl: "https://api.example.com/v1",
+          apiKey: "sk-test",
+          model: "paper-model",
+          prompt: "materials discovery",
+          schedule: {
+            mode: "daily",
+            intervalHours: 24,
+            dailyTime: "09:30",
+          },
+          subscription: {
+            name: "Paper Feed AI Summary",
+            refreshIntervalHours: 24,
+            cleanupReadAfterDays: 30,
+            cleanupUnreadAfterDays: 365,
+          },
+        },
+      });
+    },
+    async readRunState() {
+      return createRunState({ aiSummaryLastSuccessAt: null });
+    },
+    async rebuildAiSummaryCache() {
+      aiSummaryCalls += 1;
+    },
+    now: () => now,
+    timer,
+  });
+
+  await scheduler.start();
+
+  assert.equal(timer.size, 1);
+  assert.equal(timer.getNextDelay(), 90 * 60 * 1000);
+  assert.equal(scheduler.getState().scheduleMode, "daily");
+  assert.equal(scheduler.getState().dailyTime, "09:30");
+
+  now = new Date(2026, 4, 24, 9, 30, 0, 0);
+  await timer.runNext();
+
+  assert.equal(aiSummaryCalls, 1);
+  assert.equal(timer.size, 1);
+  assert.equal(timer.getNextDelay(), 24 * 60 * 60 * 1000);
 });

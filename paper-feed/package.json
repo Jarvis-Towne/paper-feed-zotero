@@ -1,7 +1,7 @@
 {
   "name": "paper-feed-zotero-plugin",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Automated literature filtering and delivery tool for Zotero.",
   "config": {
     "addonName": "Paper Feed",
@@ -23,7 +23,7 @@
   "scripts": {
     "start": "zotero-plugin serve",
     "build": "zotero-plugin build && tsc --noEmit",
-    "test:unit": "node --import tsx --test tests/domain/matcher.test.ts tests/domain/rssSerializer.test.ts tests/storage/configStore.test.ts tests/storage/runStateStore.test.ts tests/storage/feedSnapshotStore.test.ts tests/fetch/fetchRunner.test.ts tests/configExchange/portableFormat.test.ts tests/migration/legacyImport.test.ts tests/scheduler/scheduler.test.ts tests/zotero/feedProvision.test.ts tests/zotero/feedReader.test.ts",
+    "test:unit": "node --import tsx --test tests/ai/aiSummary.test.ts tests/ai/aiSummaryLinks.test.ts tests/domain/matcher.test.ts tests/domain/rssSerializer.test.ts tests/storage/configStore.test.ts tests/storage/runStateStore.test.ts tests/storage/feedSnapshotStore.test.ts tests/fetch/aiSummarySchedule.test.ts tests/fetch/fetchRunner.test.ts tests/configExchange/portableFormat.test.ts tests/migration/legacyImport.test.ts tests/scheduler/scheduler.test.ts tests/server/endpointAccess.test.ts tests/zotero/feedProvision.test.ts tests/zotero/feedReader.test.ts",
     "lint:check": "prettier --check . && eslint .",
     "lint:fix": "prettier --write . && eslint . --fix",
     "release": "zotero-plugin release",

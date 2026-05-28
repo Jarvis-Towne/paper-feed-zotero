@@ -1,8 +1,13 @@
 import type {
+  AiSummaryConfig,
   JournalConfig,
   ManagedSubscriptionConfig,
   PluginConfig,
 } from "../domain/types";
+import {
+  normalizeAiSummarySchedule,
+  DEFAULT_AI_SUMMARY_INTERVAL_HOURS,
+} from "../ai/aiSummarySchedule";
 import {
   readTextFileIfExists,
   writeTextFile,
@@ -21,6 +26,24 @@ export const DEFAULT_PLUGIN_CONFIG: PluginConfig = {
     cleanupReadAfterDays: 30,
     cleanupUnreadAfterDays: 365,
   },
+  aiSummary: {
+    enabled: false,
+    baseUrl: "",
+    apiKey: "",
+    model: "",
+    prompt: "",
+    schedule: {
+      mode: "interval",
+      intervalHours: DEFAULT_AI_SUMMARY_INTERVAL_HOURS,
+      dailyTime: "09:00",
+    },
+    subscription: {
+      name: "Paper Feed AI Summary",
+      refreshIntervalHours: DEFAULT_AI_SUMMARY_INTERVAL_HOURS,
+      cleanupReadAfterDays: 30,
+      cleanupUnreadAfterDays: 365,
+    },
+  },
 };
 
 export function createDefaultConfig(): PluginConfig {
@@ -30,6 +53,12 @@ export function createDefaultConfig(): PluginConfig {
     keywordQueries: [],
     subscription: {
       ...DEFAULT_PLUGIN_CONFIG.subscription,
+    },
+    aiSummary: {
+      ...DEFAULT_PLUGIN_CONFIG.aiSummary,
+      subscription: {
+        ...DEFAULT_PLUGIN_CONFIG.aiSummary.subscription,
+      },
     },
   };
 }
@@ -50,10 +79,12 @@ export function createImportedConfig(input: {
   subscription?: Partial<ManagedSubscriptionConfig>;
 }): PluginConfig {
   return {
-    journals: parseLineSeparatedValues(input.journalsContent || "").map((url) => ({
-      name: "",
-      url,
-    })),
+    journals: parseLineSeparatedValues(input.journalsContent || "").map(
+      (url) => ({
+        name: "",
+        url,
+      }),
+    ),
     keywordQueries: parseLineSeparatedValues(input.keywordContent || ""),
     autoFetchEnabled: input.autoFetchEnabled ?? false,
     autoFetchIntervalHours: input.autoFetchIntervalHours ?? 6,
@@ -61,6 +92,12 @@ export function createImportedConfig(input: {
     subscription: {
       ...DEFAULT_PLUGIN_CONFIG.subscription,
       ...input.subscription,
+    },
+    aiSummary: {
+      ...DEFAULT_PLUGIN_CONFIG.aiSummary,
+      subscription: {
+        ...DEFAULT_PLUGIN_CONFIG.aiSummary.subscription,
+      },
     },
   };
 }
@@ -151,6 +188,33 @@ function parseStoredSubscription(
   };
 }
 
+function parseStoredAiSummary(value: unknown): AiSummaryConfig {
+  const raw =
+    value && typeof value === "object"
+      ? (value as Partial<AiSummaryConfig>)
+      : {};
+
+  return {
+    enabled: raw.enabled ?? false,
+    baseUrl: typeof raw.baseUrl === "string" ? raw.baseUrl.trim() : "",
+    apiKey: typeof raw.apiKey === "string" ? raw.apiKey.trim() : "",
+    model: typeof raw.model === "string" ? raw.model.trim() : "",
+    prompt: typeof raw.prompt === "string" ? raw.prompt : "",
+    schedule: normalizeAiSummarySchedule(
+      raw.schedule,
+      normalizePositiveInteger(
+        raw.subscription?.refreshIntervalHours,
+        DEFAULT_PLUGIN_CONFIG.aiSummary.schedule?.intervalHours ??
+          DEFAULT_AI_SUMMARY_INTERVAL_HOURS,
+      ),
+    ),
+    subscription: parseStoredSubscription(
+      raw.subscription,
+      DEFAULT_PLUGIN_CONFIG.aiSummary.subscription.name,
+    ),
+  };
+}
+
 export function serializeConfig(config: PluginConfig) {
   return JSON.stringify(config, null, 2);
 }
@@ -173,6 +237,7 @@ export function parseStoredConfig(raw: string): PluginConfig {
     ),
     profileName,
     subscription: parseStoredSubscription(parsed.subscription, "Paper Feed"),
+    aiSummary: parseStoredAiSummary(parsed.aiSummary),
   };
 }
 

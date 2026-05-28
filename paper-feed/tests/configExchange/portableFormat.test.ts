@@ -19,6 +19,24 @@ test("portable config format round-trips journals, keywords, and subscription se
     cleanupReadAfterDays: 14,
     cleanupUnreadAfterDays: 90,
   };
+  config.aiSummary = {
+    enabled: true,
+    baseUrl: "https://api.example.com/v1",
+    apiKey: "sk-test",
+    model: "paper-model",
+    prompt: "1. solid electrolytes\n2. catalyst genome",
+    schedule: {
+      mode: "daily",
+      intervalHours: 24,
+      dailyTime: "08:30",
+    },
+    subscription: {
+      name: "Lab AI Feed",
+      refreshIntervalHours: 24,
+      cleanupReadAfterDays: 21,
+      cleanupUnreadAfterDays: 120,
+    },
+  };
   config.keywordQueries = ["machine learning", "perovskite AND stability"];
   config.journals = [
     { name: "Nature Communications", url: "https://www.nature.com/ncomms.rss" },
