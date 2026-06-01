@@ -32,6 +32,8 @@
 7. 成功后打开 Zotero 左侧文献管理栏，划拉到最后即可看到新增的订阅。
 8. 享受你的阅读。
 
+**RSS目录中[ComputationalMaterials.txt](https://github.com/Jarvis-Towne/paper-feed-zotero/blob/main/RSS/ComputationalMaterials.txt)为开发者自用的期刊RSS链接，如果领域与你相关可以直接导入使用，欢迎各个领域的大佬贡献自己领域的期刊RSS链接。**
+
 ### AI 总结
 
 AI 总结默认关闭。不启用时，原有抓取、缓存和普通 RSS 订阅流程不受影响。
