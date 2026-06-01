@@ -77,7 +77,7 @@ AI 总结默认关闭。不启用时，原有抓取、缓存和普通 RSS 订阅
 - 本地 RSS 地址只在 Zotero 运行期间可访问。
 - 自动抓取同样依赖 Zotero 运行，不会在后台独立常驻。
 - [paper feed](https://github.com/Jarvis-Towne/paper-feed) 项目可基于 GitHub Actions 实现云端抓取，但仍需打开 Zotero 更新订阅。
-- AI 摘要调用失败不会阻断普通 RSS 抓取。失败的候选文献不会被标记为已提交 AI，下次抓取会继续重试。
+- AI 摘要调用失败不会阻断普通 RSS 抓取。本次失败的候选文献不会被标记为已提交 AI，下次抓取会继续重试。
 
 ---
 
