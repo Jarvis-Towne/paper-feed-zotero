@@ -28,8 +28,7 @@ const DEFAULT_TIMEOUT_MS = 300000;
 
 function hasZoteroHttpRequest() {
   return (
-    typeof Zotero !== "undefined" &&
-    typeof Zotero.HTTP?.request === "function"
+    typeof Zotero !== "undefined" && typeof Zotero.HTTP?.request === "function"
   );
 }
 
@@ -65,6 +64,31 @@ function getCompletionsUrl(baseUrl: string) {
   return `${normalizeBaseUrl(baseUrl)}/chat/completions`;
 }
 
+function textFromContentPart(part: unknown) {
+  if (typeof part === "string") {
+    return part;
+  }
+
+  if (!part || typeof part !== "object") {
+    return "";
+  }
+
+  const text = (part as { text?: unknown }).text;
+  return typeof text === "string" ? text : "";
+}
+
+function normalizeCompletionContent(content: unknown) {
+  if (typeof content === "string") {
+    return content;
+  }
+
+  if (Array.isArray(content)) {
+    return content.map(textFromContentPart).join("");
+  }
+
+  return "";
+}
+
 function parseCompletionContent(body: string) {
   const parsed = JSON.parse(body) as {
     choices?: Array<{
@@ -75,9 +99,10 @@ function parseCompletionContent(body: string) {
     }>;
   };
   const content =
-    parsed.choices?.[0]?.message?.content ?? parsed.choices?.[0]?.text;
+    normalizeCompletionContent(parsed.choices?.[0]?.message?.content) ||
+    normalizeCompletionContent(parsed.choices?.[0]?.text);
 
-  if (typeof content !== "string" || !content.trim()) {
+  if (!content.trim()) {
     throw new Error("AI response did not include message content");
   }
 
@@ -96,12 +121,15 @@ async function postJsonWithZoteroHttp(
     responseType: "text",
     successCodes: false,
     timeout: timeoutMs,
+    // The summary pipeline owns bounded retries and batch splitting.
+    errorDelayMax: 0,
   });
 
   return {
     ok: response.status >= 200 && response.status < 300,
     status: response.status,
-    body: typeof response.responseText === "string" ? response.responseText : "",
+    body:
+      typeof response.responseText === "string" ? response.responseText : "",
   };
 }
 
@@ -165,7 +193,9 @@ export function createOpenAiCompatibleClient(
 
       if (!response.ok) {
         throw new Error(
-          `AI request failed with HTTP ${response.status}: ${response.body.slice(0, 240)}`,
+          response.status === 524
+            ? "AI request failed with HTTP 524: upstream gateway timed out"
+            : `AI request failed with HTTP ${response.status}: ${response.body.slice(0, 240)}`,
         );
       }
 

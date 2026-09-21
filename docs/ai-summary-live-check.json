@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "sampleCount": 2,
+  "matchedCount": 1,
+  "requests": 2,
+  "elapsedSeconds": 44,
+  "warnings": [],
+  "htmlLength": 4077,
+  "wroteZoteroState": false
+}
