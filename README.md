@@ -4,7 +4,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-orange?style=flat-square)](./LICENSE)
 
-当前版本：`0.2.0`。
+当前版本：`0.2.1`。安装包：[paper-feed-v0.2.1.xpi](./paper-feed-v0.2.1.xpi)。
 
 这是一个 Zotero 插件项目，将“期刊 RSS 抓取 + 关键词规则筛选 + 可选 AI 总结 + 本地 RSS 推送 + Zotero 原生订阅接入”整合到 Zotero 内部完成。用户不再依赖 GitHub Actions、GitHub Pages 或外部脚本，可以直接在 Zotero 中维护配置、执行抓取、查看运行状态并订阅筛选结果。
 如果你不想本地抓取，请使用基于GitHub Actions在线运行的 [paper feed](https://github.com/Jarvis-Towne/paper-feed) 。

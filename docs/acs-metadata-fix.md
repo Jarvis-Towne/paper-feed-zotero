@@ -12,7 +12,7 @@
 
 ## 安装与使用
 
-在 Zotero 的插件管理页面选择“从文件安装插件”，安装项目根目录的 `paper-feed-v0.2.0.xpi`，按提示重启 Zotero。执行 Paper Feed 的手动抓取/缓存重建，刷新 Paper Feed 订阅。
+在 Zotero 的插件管理页面选择“从文件安装插件”，安装项目根目录的 `paper-feed-v0.2.1.xpi`，按提示重启 Zotero。执行 Paper Feed 的手动抓取/缓存重建，刷新 Paper Feed 订阅。
 
 历史缺失较多时，后续刷新继续分批补全。来源与 Crossref 均没有的信息保持缺失；已保存到普通文库的论文不会被此修复自动改写。
 
