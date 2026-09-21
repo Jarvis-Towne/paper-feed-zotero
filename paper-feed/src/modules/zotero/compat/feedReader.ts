@@ -1,8 +1,7 @@
-import type {
-  FeedSourceReader,
-  FeedSourceResult,
-} from "../../domain/types";
+import type { FeedSourceReader, FeedSourceResult } from "../../domain/types";
 import { normalizeFeedSourceUrl } from "../../fetch/feedSource";
+import { isAcsFeedUrl, readAcsFeed } from "./acsFeed";
+import { enrichFromCrossref } from "./crossrefMetadata";
 
 function getFeedReaderConstructor() {
   const FeedReader = (Zotero as any).FeedReader;
@@ -67,6 +66,9 @@ export async function readFeedSourceWithZotero(
   url: string,
 ): Promise<FeedSourceResult> {
   const normalizedUrl = normalizeFeedSourceUrl(url);
+  if (isAcsFeedUrl(normalizedUrl)) {
+    return readAcsFeed(normalizedUrl);
+  }
   const FeedReader = getFeedReaderConstructor();
   const reader = new FeedReader(normalizedUrl);
 
@@ -102,5 +104,6 @@ export async function readFeedSourceWithZotero(
 export function createZoteroFeedSourceReader(): FeedSourceReader {
   return {
     read: readFeedSourceWithZotero,
+    enrich: enrichFromCrossref,
   };
 }

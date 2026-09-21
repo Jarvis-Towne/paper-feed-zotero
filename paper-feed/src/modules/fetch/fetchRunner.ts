@@ -16,8 +16,13 @@ import {
   dedupeEntries,
   hasSeenEntry,
   recordSeenEntry,
+  getEntrySeenIds,
 } from "./dedupe";
-import { normalizeFeedSourceItem, normalizeFeedSourceUrl } from "./feedSource";
+import {
+  extractDoi,
+  normalizeFeedSourceItem,
+  normalizeFeedSourceUrl,
+} from "./feedSource";
 
 function createFeedTitle(profileName: string) {
   return profileName ? `Paper Feed (${profileName})` : "Paper Feed";
@@ -43,7 +48,13 @@ export async function runFetchPipeline(input: {
 }): Promise<FeedFetchResult> {
   const now = input.now ?? new Date();
   const maxItems = input.maxItems ?? DEFAULT_MAX_ITEMS;
-  const previousItems = dedupeEntries(input.previousItems ?? []);
+  const previousItems = dedupeEntries(
+    (input.previousItems ?? []).map((entry) => ({
+      ...entry,
+      doi:
+        extractDoi(entry.doi) || extractDoi(entry.link) || extractDoi(entry.id),
+    })),
+  );
   const seenIds = createSeenIdSet(previousItems, input.previousSeenIds ?? []);
   const newItems: FeedEntry[] = [];
   const errors: FeedFetchIssue[] = [];
@@ -73,6 +84,22 @@ export async function runFetchPipeline(input: {
         }
 
         if (hasSeenEntry(entry, seenIds)) {
+          // Refresh missing metadata without changing GUIDs or creating new papers.
+          const keys = new Set(getEntrySeenIds(entry));
+          const stored = previousItems.find((item) =>
+            getEntrySeenIds(item).some((key) => keys.has(key)),
+          );
+          if (stored) {
+            stored.doi ||= entry.doi;
+            if (!stored.authors && entry.authors) {
+              stored.authors = entry.authors;
+              stored.authorNames = entry.authorNames;
+            }
+            stored.volume ||= entry.volume;
+            stored.issue ||= entry.issue;
+            stored.pages ||= entry.pages;
+            stored.ISSN ||= entry.ISSN;
+          }
           continue;
         }
 
@@ -91,6 +118,28 @@ export async function runFetchPipeline(input: {
     dedupeEntries([...previousItems, ...newItems]),
     maxItems,
   );
+  if (input.reader.enrich) {
+    // Bound external requests per refresh; cached successes need no further lookup.
+    const pending = items
+      .filter((entry) => entry.doi && !entry.authors)
+      .sort((a, b) =>
+        (a.metadataCheckedAt || "").localeCompare(b.metadataCheckedAt || ""),
+      )
+      .slice(0, 50);
+    for (const entry of pending) {
+      try {
+        Object.assign(entry, await input.reader.enrich(entry));
+        entry.metadataCheckedAt = now.toISOString();
+      } catch (error) {
+        errors.push({
+          sourceUrl: entry.link,
+          message: `Metadata enrichment failed: ${toErrorMessage(error)}`,
+        });
+        // Avoid repeating a service outage or rate limit for every retained paper.
+        break;
+      }
+    }
+  }
   const finalizedSeenIds = Array.from(createSeenIdSet(items));
   const generatedAt = now.toISOString();
   const xml = buildRssXml(items, {

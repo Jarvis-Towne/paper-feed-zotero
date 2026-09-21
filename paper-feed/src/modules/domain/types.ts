@@ -7,6 +7,12 @@ export interface FeedEntry {
   pubDate: Date;
   doi?: string | null;
   authors?: string | null;
+  authorNames?: string[];
+  metadataCheckedAt?: string;
+  volume?: string | null;
+  issue?: string | null;
+  pages?: string | null;
+  ISSN?: string | null;
   isOld?: boolean;
 }
 
@@ -104,6 +110,10 @@ export interface FeedSourceItem {
   creatorSummary?: string | null;
   author?: string | null;
   creator?: string | null;
+  volume?: string | null;
+  issue?: string | null;
+  pages?: string | null;
+  ISSN?: string | null;
 }
 
 export interface FeedSourceResult {
@@ -114,6 +124,7 @@ export interface FeedSourceResult {
 
 export interface FeedSourceReader {
   read: (url: string) => Promise<FeedSourceResult>;
+  enrich?: (entry: FeedEntry) => Promise<FeedEntry>;
 }
 
 export interface FeedFetchIssue {

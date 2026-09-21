@@ -7,6 +7,135 @@ import type {
   PluginConfig,
 } from "../../src/modules/domain/types";
 import { runFetchPipeline } from "../../src/modules/fetch/fetchRunner";
+import { createDefaultConfig } from "../../src/modules/storage/configStore";
+
+test("cached entries receive source metadata without becoming new or mutating input", async () => {
+  const config = createDefaultConfig();
+  config.journals = [
+    {
+      name: "ACS",
+      url: "https://pubs.acs.org/action/showFeed?type=axatoc&jc=jacsat",
+    },
+  ];
+  config.keywordQueries = ["battery"];
+  const previous: FeedEntry = {
+    title: "battery",
+    id: "old-guid",
+    link: "https://doi.org/10.1021/test",
+    summary: "battery",
+    journal: "JACS",
+    pubDate: new Date("2026-09-18"),
+  };
+  const result = await runFetchPipeline({
+    config,
+    previousItems: [previous],
+    reader: {
+      async read(url) {
+        assert.equal(url, "https://pubs.acs.org/rss/jacsat/asap.xml");
+        return {
+          sourceUrl: url,
+          feedTitle: "JACS",
+          items: [
+            {
+              guid: "new-url-guid",
+              title: "battery",
+              DOI: "10.1021/test",
+              creators: [{ firstName: "Jane", lastName: "Li" }],
+              volume: "148",
+            },
+          ],
+        };
+      },
+      async enrich() {
+        throw new Error("must not request already known authors");
+      },
+    },
+  });
+  assert.equal(result.newItems.length, 0);
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].id, "old-guid");
+  assert.equal(result.items[0].authors, "Jane Li");
+  assert.equal(result.items[0].volume, "148");
+  assert.match(result.xml, /<dc:creator>Jane Li<\/dc:creator>/);
+  assert.equal(previous.doi, undefined);
+  assert.equal(previous.authors, undefined);
+  assert.equal(result.errors.length, 0);
+});
+
+test("enrichment runs only on retained matches and failure preserves all papers", async () => {
+  const config = createDefaultConfig();
+  config.journals = [{ name: "ACS", url: "https://example.com/feed" }];
+  config.keywordQueries = ["battery"];
+  let calls = 0;
+  const result = await runFetchPipeline({
+    config,
+    reader: {
+      async read(url) {
+        return {
+          sourceUrl: url,
+          feedTitle: "ACS",
+          items: [
+            { guid: "1", title: "battery A", DOI: "10.1021/a" },
+            { guid: "2", title: "battery B", DOI: "10.1021/b" },
+            { guid: "3", title: "unrelated", DOI: "10.1021/c" },
+          ],
+        };
+      },
+      async enrich() {
+        calls++;
+        throw new Error("HTTP 429");
+      },
+    },
+  });
+  assert.equal(calls, 1);
+  assert.equal(result.items.length, 2);
+  assert.equal(result.newItems.length, 2);
+  assert.match(
+    result.errors[0].message,
+    /Metadata enrichment failed: HTTP 429/,
+  );
+  assert.match(result.xml, /doi:10.1021\/a/);
+});
+
+test("metadata batches progress past unavailable DOIs on subsequent refreshes", async () => {
+  const config = createDefaultConfig();
+  const previousItems = Array.from(
+    { length: 51 },
+    (_, i): FeedEntry => ({
+      title: `paper ${i}`,
+      id: `id-${i}`,
+      link: `https://doi.org/10.1021/p${i}`,
+      summary: "",
+      journal: "ACS",
+      pubDate: new Date("2026-09-18"),
+    }),
+  );
+  const calls: string[] = [];
+  const reader: FeedSourceReader = {
+    async read() {
+      throw new Error("no feeds configured");
+    },
+    async enrich(entry) {
+      calls.push(entry.id);
+      return entry;
+    },
+  };
+  const first = await runFetchPipeline({
+    config,
+    previousItems,
+    reader,
+    now: new Date("2026-09-21"),
+  });
+  assert.equal(calls.length, 50);
+  calls.length = 0;
+  await runFetchPipeline({
+    config,
+    previousItems: first.items,
+    reader,
+    now: new Date("2026-09-22"),
+  });
+  assert.equal(calls[0], "id-50");
+});
 
 test("runFetchPipeline normalizes feed URLs, filters matches, and dedupes results", async () => {
   const calls: string[] = [];

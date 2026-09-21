@@ -51,6 +51,22 @@ function normalizeCreators(value: unknown): string | null {
   return normalizeCreatorName(value);
 }
 
+export function extractDoi(value: string | null | undefined): string | null {
+  if (!value) return null;
+  let text = value.trim();
+  try {
+    text = decodeURIComponent(text);
+  } catch {
+    // Keep literal text when a publisher supplies malformed URL encoding.
+  }
+  // Silverchair article URLs append an internal article ID and title to the DOI.
+  const acs = text.match(
+    /pubs\.acs\.org\/[^/]+\/article\/doi\/(10\.1021\/[^/?#\s]+)/i,
+  );
+  if (acs) return acs[1];
+  return text.match(/10\.\d{4,9}\/[^\s<>"?#]+/i)?.[0] || null;
+}
+
 function getItemAuthors(item: FeedSourceItem) {
   return firstNonEmpty(
     normalizeCreators(item.creators),
@@ -67,15 +83,29 @@ export function normalizeFeedSourceUrl(url: string) {
     return "";
   }
 
-  if (URL_SCHEME_RE.test(trimmed)) {
-    return trimmed;
+  const normalized = URL_SCHEME_RE.test(trimmed)
+    ? trimmed
+    : `https://${trimmed.replace(/^\/+/, "")}`;
+  try {
+    const parsed = new URL(normalized);
+    if (
+      parsed.hostname === "pubs.acs.org" &&
+      parsed.pathname === "/action/showFeed"
+    ) {
+      const code = parsed.searchParams.get("jc");
+      const type = parsed.searchParams.get("type");
+      if (
+        code &&
+        /^[a-z0-9]+$/i.test(code) &&
+        (type === "axatoc" || type === "etoc")
+      ) {
+        return `https://pubs.acs.org/rss/${code}/${type === "axatoc" ? "asap" : "currentIssue"}.xml`;
+      }
+    }
+  } catch {
+    // Let the source reader report invalid URLs.
   }
-
-  if (trimmed.startsWith("//")) {
-    return `https:${trimmed}`;
-  }
-
-  return `https://${trimmed.replace(/^\/+/, "")}`;
+  return normalized;
 }
 
 export function normalizeFeedSourceItem(
@@ -99,7 +129,19 @@ export function normalizeFeedSourceItem(
     journal: firstNonEmpty(item.publicationTitle, options.fallbackJournal)!,
     id: id || link!,
     pubDate: ensureDate(item.pubDate ?? item.date),
-    doi: firstNonEmpty(item.DOI, item.doi),
+    doi:
+      extractDoi(firstNonEmpty(item.DOI, item.doi)) ||
+      extractDoi(link) ||
+      extractDoi(id),
     authors: getItemAuthors(item),
+    authorNames: Array.isArray(item.creators)
+      ? item.creators
+          .map(normalizeCreatorName)
+          .filter((name): name is string => !!name)
+      : undefined,
+    volume: item.volume,
+    issue: item.issue,
+    pages: item.pages,
+    ISSN: item.ISSN,
   };
 }

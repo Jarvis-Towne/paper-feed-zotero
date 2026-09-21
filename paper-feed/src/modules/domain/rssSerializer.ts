@@ -4,7 +4,8 @@ import type { FeedEntry, RssBuildOptions } from "./types";
 
 export const DEFAULT_FEED_TITLE = "Paper Feed";
 export const DEFAULT_FEED_LINK = "http://127.0.0.1/";
-export const DEFAULT_FEED_DESCRIPTION = "Filtered papers from journal RSS feeds";
+export const DEFAULT_FEED_DESCRIPTION =
+  "Filtered papers from journal RSS feeds";
 export const DEFAULT_MAX_ITEMS = 1000;
 
 function toRfc822Date(value: Date) {
@@ -18,6 +19,11 @@ function serializeItem(item: FeedEntry) {
   const guid = removeIllegalXmlChars(item.id || item.link);
   const link = removeIllegalXmlChars(item.link);
   const pubDate = ensureDate(item.pubDate);
+  const metadata = (tag: string, value?: string | null) =>
+    value?.trim()
+      ? `<${tag}>${escapeXml(removeIllegalXmlChars(value.trim()))}</${tag}>`
+      : "";
+  const authors = item.authorNames?.length ? item.authorNames : [item.authors];
 
   return [
     "<item>",
@@ -27,6 +33,12 @@ function serializeItem(item: FeedEntry) {
     `<guid isPermaLink="false">${escapeXml(guid)}</guid>`,
     `<pubDate>${escapeXml(toRfc822Date(pubDate))}</pubDate>`,
     `<dc:source>${escapeXml(source)}</dc:source>`,
+    ...authors.map((name) => metadata("dc:creator", name)),
+    metadata("dc:identifier", item.doi ? `doi:${item.doi}` : null),
+    metadata("prism:volume", item.volume),
+    metadata("prism:number", item.issue),
+    metadata("prism:pageRange", item.pages),
+    metadata("prism:issn", item.ISSN),
     "</item>",
   ].join("");
 }
@@ -38,15 +50,13 @@ export function sortFeedEntriesForOutput(
   return [...items]
     .sort(
       (left, right) =>
-        ensureDate(right.pubDate).getTime() - ensureDate(left.pubDate).getTime(),
+        ensureDate(right.pubDate).getTime() -
+        ensureDate(left.pubDate).getTime(),
     )
     .slice(0, maxItems);
 }
 
-export function buildRssXml(
-  items: FeedEntry[],
-  options: RssBuildOptions = {},
-) {
+export function buildRssXml(items: FeedEntry[], options: RssBuildOptions = {}) {
   const title = options.title ?? DEFAULT_FEED_TITLE;
   const link = options.link ?? DEFAULT_FEED_LINK;
   const description = options.description ?? DEFAULT_FEED_DESCRIPTION;
@@ -59,7 +69,7 @@ export function buildRssXml(
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">',
+    '<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:prism="http://prismstandard.org/namespaces/basic/2.0/">',
     "<channel>",
     `<title>${escapeXml(title)}</title>`,
     `<link>${escapeXml(link)}</link>`,

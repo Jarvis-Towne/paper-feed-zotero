@@ -30,6 +30,12 @@ function parseEntry(raw: Partial<FeedEntry>): FeedEntry {
     pubDate: ensureDate(raw.pubDate),
     doi: raw.doi ?? null,
     authors: raw.authors ?? null,
+    authorNames: raw.authorNames,
+    metadataCheckedAt: raw.metadataCheckedAt,
+    volume: raw.volume,
+    issue: raw.issue,
+    pages: raw.pages,
+    ISSN: raw.ISSN,
     isOld: raw.isOld ?? false,
   };
 }
